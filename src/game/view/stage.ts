@@ -13,7 +13,7 @@ export class Stage {
     private controller: UserInputManager;
 
 
-    constructor(canvasForOutput: HTMLCanvasElement, zoom = 2) {
+    constructor(canvasForOutput: HTMLCanvasElement, gameZoom = 2, guiZoom = gameZoom) {
         this.controller = new UserInputManager(canvasForOutput);
 
         this.handleOnMouseUp();
@@ -24,9 +24,9 @@ export class Stage {
 
         this.stageCav = canvasForOutput;
 
-        this.gameImgProps = new StageImageProperties(zoom);
+        this.gameImgProps = new StageImageProperties(gameZoom);
 
-        this.guiImgProps = new StageImageProperties(zoom);
+        this.guiImgProps = new StageImageProperties(guiZoom);
 
         this.updateStageSize();
 
@@ -263,6 +263,16 @@ export class Stage {
             return this.gameImgProps.createImage(width, height);
         }
         else {
+            const scaleX = this.guiImgProps.width / width;
+            const scaleY = this.guiImgProps.height / height;
+            const fittedScale = Math.min(scaleX, scaleY);
+
+            if (Number.isFinite(fittedScale) && fittedScale > 0) {
+                this.guiImgProps.viewPoint.scale = fittedScale;
+                this.guiImgProps.viewPoint.x = 0;
+                this.guiImgProps.viewPoint.y = 0;
+            }
+
             return this.guiImgProps.createImage(width, height);
         }
     }
@@ -284,15 +294,15 @@ export class Stage {
         }
     }
 
-    private fadeTimer = 0;
+    private fadeTimer: ReturnType<typeof setInterval> | undefined;
     private fadeAlpha = 0;
 
     public resetFade() {
         this.fadeAlpha = 0;
 
-        if (this.fadeTimer != 0) {
+        if (this.fadeTimer !== undefined) {
             clearInterval(this.fadeTimer);
-            this.fadeTimer = 0;
+            this.fadeTimer = undefined;
         }
     }
 
@@ -303,11 +313,17 @@ export class Stage {
         this.fadeTimer = setInterval(() => {
             this.fadeAlpha = Math.min(this.fadeAlpha + 0.02, 1);
 
-            if (this.fadeAlpha <= 0) {
+            if (this.fadeAlpha >= 1) {
                 clearInterval(this.fadeTimer);
+                this.fadeTimer = undefined;
             }
         }, 40);
 
+    }
+
+    public dispose(): void {
+        this.resetFade();
+        this.controller.dispose();
     }
 
     /** draw everything to the stage/display */

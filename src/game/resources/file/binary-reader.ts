@@ -18,11 +18,11 @@ export class BinaryReader {
 
     offset = offset || 0;
 
-    let dataLength = 0;
+    let dataLength: number;
 
     if (dataArray == null) {
       this.data = new Uint8Array(0);
-      dataLength = 0;
+      dataLength = this.data.byteLength;
       this.log.log('BinaryReader from NULL; size:' + 0);
 
     } else if (dataArray instanceof BinaryReader) {

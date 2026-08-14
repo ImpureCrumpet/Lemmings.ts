@@ -3,7 +3,7 @@ import { MaskList } from '@/game/resources/mask-list';
 import { MaskProvider } from '@/game/resources/mask-provider';
 import { MaskTypes } from '@/game/resources/mask-types';
 import { DisplayImage } from '@/game/view/display-image';
-import { IActionSystem } from '../action-system';
+import type { IActionSystem } from '../action-system';
 import { Lemming } from '../lemming';
 import { LemmingStateType } from '../lemming-state-type';
 import { SoundSystem } from '../sound-system';
@@ -28,13 +28,13 @@ export class ActionCountdownSystem implements IActionSystem {
 
     /** render Lemming to game display */
     public draw(gameDisplay: DisplayImage, lem: Lemming) {
-        let count = lem.getCountDownTime();
+        const count = lem.getCountDownTime();
 
         if (count <= 0) {
             return;
         }
 
-        let numberFrame = this.numberMasks.getMask(count);
+        const numberFrame = this.numberMasks.getMask(count);
 
         gameDisplay.drawMask(numberFrame, lem.x, lem.y);
     }

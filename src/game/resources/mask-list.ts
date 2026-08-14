@@ -20,10 +20,10 @@ export class MaskList {
     }
 
     public static fromFile(fr: BinaryReader, width: number, height: number, count: number, offsetX: number, offsetY: number) {
-        let frames: Mask[] = [];
+        const frames: Mask[] = [];
   
         for (let i = 0; i < count; i++) {
-            let mask = Mask.fromFile(fr, width, height, offsetX, offsetY);
+            const mask = Mask.fromFile(fr, width, height, offsetX, offsetY);
             frames.push(mask);
         }
 

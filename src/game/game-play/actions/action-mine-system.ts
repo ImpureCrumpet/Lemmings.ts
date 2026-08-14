@@ -5,7 +5,7 @@ import { MaskProvider } from '@/game/resources/mask-provider';
 import { MaskTypes } from '@/game/resources/mask-types';
 import { SpriteTypes } from '@/game/resources/sprite-types';
 import { DisplayImage } from '@/game/view/display-image';
-import { IActionSystem } from '../action-system';
+import type { IActionSystem } from '../action-system';
 import { Lemming } from '../lemming';
 import { LemmingStateType } from '../lemming-state-type';
 import { SoundSystem } from '../sound-system';
@@ -28,9 +28,9 @@ export class ActionMineSystem implements IActionSystem {
 
 
     public draw(gameDisplay: DisplayImage, lem: Lemming) {
-        let ani = this.sprite[(lem.lookRight ? 1 : 0)];
+        const ani = this.sprite[(lem.lookRight ? 1 : 0)];
 
-        let frame = ani.getFrame(lem.frameIndex);
+        const frame = ani.getFrame(lem.frameIndex);
 
         gameDisplay.drawFrame(frame, lem.x, lem.y);
     }
@@ -54,15 +54,17 @@ export class ActionMineSystem implements IActionSystem {
 
         switch (lem.frameIndex) {
             case 1:
-            case 2:
-                let mask = this.masks[(lem.lookRight ? 1 : 0)];
-                let maskIndex = lem.frameIndex - 1;
+            case 2: {
+                const mask = this.masks[(lem.lookRight ? 1 : 0)];
+                const maskIndex = lem.frameIndex - 1;
 
                 level.clearGroundWithMask(mask.getMask(maskIndex), lem.x, lem.y);
                 break;
+            }
 
             case 3:
                 lem.y++;
+                // Fall through: this frame also moves the lemming forward.
 
             case 15:
                 lem.x += lem.lookRight ? 1 : -1;

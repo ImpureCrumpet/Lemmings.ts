@@ -46,13 +46,13 @@ export class MixerChannel {
         const VOL_AMP = 1;
 
         // Convert samples from mono int32 to stereo int16
-        let out: Int16Array = this.buffer;
+        const out: Int16Array = this.buffer;
         let outIndex = 0;
-        let ch = this.channels;
+        const ch = this.channels;
 
         if (ch == 2) {
             for (let i = 0; i < samples; i++) {
-                let v = this.CLIP(buffer[i] << VOL_AMP);
+                const v = this.CLIP(buffer[i] << VOL_AMP);
 
                 out[outIndex] = v;
                 outIndex++;
@@ -62,7 +62,7 @@ export class MixerChannel {
         }
         else {
             for (let i = 0; i < samples; i++) {
-                let v = buffer[i] << VOL_AMP;
+                const v = buffer[i] << VOL_AMP;
 
                 out[outIndex] = this.CLIP(v);
                 outIndex++;
@@ -78,9 +78,9 @@ export class MixerChannel {
         const VOL_AMP = 1;
 
         // Convert samples from stereo s32 to stereo s16
-        let out: Int16Array = this.buffer;
+        const out: Int16Array = this.buffer;
         let outIndex = 0;
-        let ch = this.channels;
+        const ch = this.channels;
 
         if (ch == 2) {
             for (let i = 0; i < samples; i++) {
@@ -96,7 +96,7 @@ export class MixerChannel {
         }
         else {
             for (let i = 0; i < samples; i++) {
-                let v = buffer[i * 2] << VOL_AMP;
+                const v = buffer[i * 2] << VOL_AMP;
                 out[outIndex] = this.CLIP(v);
                 outIndex++;
             }

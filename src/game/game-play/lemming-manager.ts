@@ -5,7 +5,7 @@ import { MaskProvider } from '../resources/mask-provider';
 import { ParticleTable } from '../resources/particle-table';
 import { LogHandler } from '../utilities/log-handler';
 import { DisplayImage } from '../view/display-image';
-import { IActionSystem } from './action-system';
+import type { IActionSystem } from './action-system';
 import { ActionBashSystem } from './actions/action-bash-system';
 import { ActionBlockerSystem } from './actions/action-blocker-system';
 import { ActionBuildSystem } from './actions/action-build-system';
@@ -103,7 +103,7 @@ import { TriggerManager } from './trigger-manager';
 
             this.addNewLemmings();
 
-            let lems = this.lemmings;
+            const lems = this.lemmings;
 
             if (this.isNuking()) {
                 this.doLemmingAction(lems[this.nextNukingLemmingsIndex], SkillTypes.BOMBER);
@@ -112,14 +112,14 @@ import { TriggerManager } from './trigger-manager';
 
             for (let i = 0; i < lems.length; i++) {
 
-                let lem = lems[i];
+                const lem = lems[i];
 
                 if (lem.removed) continue;
 
-                let newAction = lem.process(this.level);
+                const newAction = lem.process(this.level);
                 this.processNewAction(lem, newAction);
 
-                let triggerAction = this.runTrigger(lem);
+                const triggerAction = this.runTrigger(lem);
                 this.processNewAction(lem, triggerAction);
             }
         }
@@ -127,7 +127,7 @@ import { TriggerManager } from './trigger-manager';
         /** Add a new Lemming to the manager */
         private addLemming(x: number, y: number) {
 
-            let lem = new Lemming(x, y, this.lemmings.length);
+            const lem = new Lemming(x, y, this.lemmings.length);
 
             this.setLemmingState(lem, LemmingStateType.FALLING);
 
@@ -146,7 +146,7 @@ import { TriggerManager } from './trigger-manager';
             if (this.releaseTickIndex >= (104 - this.gameVictoryCondition.getCurrentReleaseRate())) {
                 this.releaseTickIndex = 0;
 
-                let entrance = this.level.entrances[0];
+                const entrance = this.level.entrances[0];
 
                 this.addLemming(entrance.x + 24, entrance.y + 14);
 
@@ -161,7 +161,7 @@ import { TriggerManager } from './trigger-manager';
                 return LemmingStateType.NO_STATE_TYPE;
             }
 
-            let triggerType = this.triggerManager.trigger(lem.x, lem.y);
+            const triggerType = this.triggerManager.trigger(lem.x, lem.y);
 
             switch (triggerType) {
                 case TriggerTypes.NO_TRIGGER:
@@ -190,7 +190,7 @@ import { TriggerManager } from './trigger-manager';
 
         /** render all Lemmings to the GameDisplay */
         public render(gameDisplay: DisplayImage) {
-            let lems = this.lemmings;
+            const lems = this.lemmings;
 
             for (let i = 0; i < lems.length; i++) {
                 lems[i].render(gameDisplay);
@@ -199,7 +199,7 @@ import { TriggerManager } from './trigger-manager';
 
         /** render all Lemmings to the GameDisplay */
         public renderDebug(gameDisplay: DisplayImage) {
-            let lems = this.lemmings;
+            const lems = this.lemmings;
 
             for (let i = 0; i < lems.length; i++) {
                 lems[i].renderDebug(gameDisplay);
@@ -213,15 +213,15 @@ import { TriggerManager } from './trigger-manager';
 
         /** return a lemming at a given position */
         public getLemmingAt(x: number, y: number): Lemming | null {
-            let lems = this.lemmings;
+            const lems = this.lemmings;
 
             let minDistance = 99999;
             let minDistanceLem = null;
 
             for (let i = 0; i < lems.length; i++) {
-                let lem = lems[i];
+                const lem = lems[i];
 
-                let distance = lem.getClickDistance(x, y);
+                const distance = lem.getClickDistance(x, y);
                 //console.log("--> "+ distance);
 
                 if ((distance < 0) || (distance >= minDistance)) {
@@ -244,7 +244,7 @@ import { TriggerManager } from './trigger-manager';
                 return;
             }
 
-            let actionSystem = this.actions[stateType];
+            const actionSystem = this.actions[stateType];
 
             if (actionSystem == null) {
                 lem.remove();
@@ -266,7 +266,7 @@ import { TriggerManager } from './trigger-manager';
                 return false;
             }
 
-            let actionSystem = this.skillActions[skillType];
+            const actionSystem = this.skillActions[skillType];
             if (!actionSystem) {
                 this.logging.log(lem.id + " Unknown Action: " + skillType);
                 return false;

@@ -140,15 +140,15 @@ export abstract class GlobalMembers {
 
         /// Multiplication based tables
         for (let i = 0; i < 384; i++) {
-            let s = i * 8;
+            const s = i * 8;
             /// TODO maybe keep some of the precision errors of the original table?
-            let val = (0.5 + (Math.pow(2.0, -1.0 + (255 - s) * (1.0 / 256))) * (1 << 16)) | 0;
+            const val = (0.5 + (Math.pow(2.0, -1.0 + (255 - s) * (1.0 / 256))) * (1 << 16)) | 0;
             GlobalMembers.MulTable[i] = val;
         }
 
         //Sine Wave Base
         for (let i = 0; i < 512; i++) {
-            GlobalMembers.WaveTable[0x0200 + i] = (Math.sin((i + 0.5) * (3.14159265358979323846 / 512.0)) * 4084) | 0;
+            GlobalMembers.WaveTable[0x0200 + i] = (Math.sin((i + 0.5) * (Math.PI / 512.0)) * 4084) | 0;
             GlobalMembers.WaveTable[0x0000 + i] = -GlobalMembers.WaveTable[0x200 + i];
         }
 
@@ -177,7 +177,7 @@ export abstract class GlobalMembers {
 
         /// Create the ksl table
         for (let oct = 0; oct < 8; oct++) {
-            let base = (oct * 8) | 0;
+            const base = (oct * 8) | 0;
             for (let i = 0; i < 16; i++) {
                 let val = base - GlobalMembers.KslCreateTable[i];
                 if (val < 0) {
@@ -191,7 +191,7 @@ export abstract class GlobalMembers {
 
         /// Create the Tremolo table, just increase and decrease a triangle wave
         for (let i = 0; i < 52 / 2; i++) {
-            let val = (i << ((9) - 9)) | 0;
+            const val = (i << ((9) - 9)) | 0;
             GlobalMembers.TremoloTable[i] = val;
             GlobalMembers.TremoloTable[52 - 1 - i] = val;
         }
@@ -226,17 +226,16 @@ export abstract class GlobalMembers {
             if (chNum >= 12) {
                 chNum += 16 - 12;
             }
-            let opNum = ((i % 8) / 3) | 0;
+            const opNum = ((i % 8) / 3) | 0;
 
             if (GlobalMembers.ChanOffsetTable[chNum] == -1) {
                 GlobalMembers.OpOffsetTable[i] = -1;
             }
             else {
-                let c = GlobalMembers.ChanOffsetTable[chNum];
+                const c = GlobalMembers.ChanOffsetTable[chNum];
                 GlobalMembers.OpOffsetTable[i] = c * 2 + opNum;
             }
 
         }
     }
 }
-

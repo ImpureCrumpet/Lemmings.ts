@@ -26,7 +26,7 @@ export class LevelIndexResolve {
 
   public resolve(levelMode: number, levelIndex: number): LevelIndexType | null {
 
-    let levelOrderList = this.config.level.order;
+    const levelOrderList = this.config.level.order;
     if (levelOrderList.length <= levelMode) {
       return null;
     }
@@ -34,7 +34,7 @@ export class LevelIndexResolve {
       return null;
     }
 
-    let levelOrder = levelOrderList[levelMode];
+    const levelOrder = levelOrderList[levelMode];
     if (levelOrder.length <= levelIndex) {
       return null;
     }
@@ -42,9 +42,9 @@ export class LevelIndexResolve {
       return null;
     }
 
-    let levelOrderConfig = levelOrder[levelIndex];
+    const levelOrderConfig = levelOrder[levelIndex];
 
-    let liType = new LevelIndexType();
+    const liType = new LevelIndexType();
 
     liType.fileId = Math.abs((levelOrderConfig / 10) | 0);
     liType.partIndex = Math.abs((levelOrderConfig % 10) | 0);

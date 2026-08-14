@@ -11,9 +11,12 @@ import { SkillPanelSprites } from './resources/skill-panel-sprites';
 import { AudioPlayer } from './resources/sound/audio-player';
 import { SoundImageManager } from './resources/sound/sound-image-manager';
 import { SoundImagePlayer } from './resources/sound/sound-image-player';
+import { LogHandler } from './utilities/log-handler';
 
 /** represent access to the resources of a Lemmings Game */
 export class GameResources {
+
+    private log = new LogHandler('GameResources');
 
     private musicPlayer: AudioPlayer | null = null;
     private soundPlayer: AudioPlayer | null = null;
@@ -28,7 +31,8 @@ export class GameResources {
     public dispose() {
         this.stopMusic();
         this.stopSound();
-        this.soundImage;
+        this.soundImage = null;
+        this.mainDat = null;
     }
 
     /** return the main.dat file container */
@@ -37,15 +41,9 @@ export class GameResources {
             return this.mainDat;
         }
 
-        this.mainDat = new Promise<FileContainer>((resolve) => {
-
-            this.fileProvider.loadBinary(this.config.path, 'MAIN.DAT')
-                .then((data) => {
-
-                    /// split the file in it's parts
-                    resolve(new FileContainer(data));
-                });
-        });
+        this.mainDat = this.fileProvider
+            .loadBinary(this.config.path, 'MAIN.DAT')
+            .then((data) => new FileContainer(data));
 
         return this.mainDat;
     }
@@ -60,7 +58,23 @@ export class GameResources {
 
     public async getSkillPanelSprite(colorPalette: ColorPalette): Promise<SkillPanelSprites> {
         const container = await this.getMainDat();
-        return new SkillPanelSprites(container.getPart(2), container.getPart(6), colorPalette);
+        const sprites = new SkillPanelSprites(container.getPart(2), container.getPart(6), colorPalette);
+
+        try {
+            const override = await this.fileProvider.loadOptionalImage(this.config.path, 'toolbar.png');
+            if (override && !sprites.setPanelSprite(override)) {
+                this.log.log(
+                    `Ignoring ${this.config.path}/toolbar.png: expected 320x40, 640x80, 960x120, or 1280x160.`,
+                );
+            }
+        } catch (error) {
+            this.log.log(
+                `Unable to use ${this.config.path}/toolbar.png; using the DOS toolbar.`,
+                error instanceof Error ? error : undefined,
+            );
+        }
+
+        return sprites;
     }
 
     public async getMasks(): Promise<MaskProvider> {
@@ -96,21 +110,12 @@ export class GameResources {
             return this.soundImage;
         }
 
-        this.soundImage = new Promise<SoundImageManager>((resolve) => {
-
-            /// load the adlib file
-            this.fileProvider.loadBinary(this.config.path, 'ADLIB.DAT')
-                .then((data) => {
-
-                    /// unpack the file
-                    const container = new FileContainer(data);
-
-                    /// create Sound Image
-                    const soundImage = new SoundImageManager(container.getPart(0), this.config.audioConfig);
-
-                    resolve(soundImage);
-                });
-        });
+        this.soundImage = this.fileProvider
+            .loadBinary(this.config.path, 'ADLIB.DAT')
+            .then((data) => {
+                const container = new FileContainer(data);
+                return new SoundImageManager(container.getPart(0), this.config.audioConfig);
+            });
 
         return this.soundImage;
     }
@@ -170,4 +175,3 @@ export class GameResources {
 
 
 }
-

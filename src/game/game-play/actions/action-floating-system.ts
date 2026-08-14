@@ -2,7 +2,7 @@ import { LemmingsSprite } from '@/game/resources/lemmings-sprite';
 import { Level } from '@/game/resources/level';
 import { SpriteTypes } from '@/game/resources/sprite-types';
 import { DisplayImage } from '@/game/view/display-image';
-import { IActionSystem } from '../action-system';
+import type { IActionSystem } from '../action-system';
 import { Lemming } from '../lemming';
 import { LemmingStateType } from '../lemming-state-type';
 import { SoundSystem } from '../sound-system';
@@ -39,9 +39,9 @@ export class ActionFloatingSystem implements IActionSystem {
 
     /** render Lemming to game display */
     public draw(gameDisplay: DisplayImage, lem: Lemming) {
-        let ani = this.sprite[(lem.lookRight ? 1 : 0)];
+        const ani = this.sprite[(lem.lookRight ? 1 : 0)];
 
-        let frame = ani.getFrame(ActionFloatingSystem.floatFrame[lem.frameIndex]);
+        const frame = ani.getFrame(ActionFloatingSystem.floatFrame[lem.frameIndex]);
 
         gameDisplay.drawFrame(frame, lem.x, lem.y);
     }
@@ -55,7 +55,7 @@ export class ActionFloatingSystem implements IActionSystem {
             lem.frameIndex = 8;
         }
 
-        let speed = ActionFloatingSystem.floatSpeed[lem.frameIndex];
+        const speed = ActionFloatingSystem.floatSpeed[lem.frameIndex];
 
         for (let i = 0; i < speed; i++) {
             if (level.hasGroundAt(lem.x, lem.y + i)) {

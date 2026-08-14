@@ -22,12 +22,12 @@ export class GroundRenderer {
     /** create the ground image from the level definition and the Terrain images */
     public static fromGroundMap(lr: LevelReader, terrainImg: TerrainImageInfo[]) {
 
-        let img = new Frame(lr.levelWidth, lr.levelHeight);
+        const img = new Frame(lr.levelWidth, lr.levelHeight);
 
-        let terrainObjects: LevelElement[] = lr.terrains;
+        const terrainObjects: LevelElement[] = lr.terrains;
 
         for (let i = 0; i < terrainObjects.length; i++) {
-            let tOb = terrainObjects[i];
+            const tOb = terrainObjects[i];
 
             this.copyImageTo(img, terrainImg[tOb.id], tOb);
         }
@@ -43,29 +43,29 @@ export class GroundRenderer {
             return;
         }
 
-        let pixBuf = srcImg.frames[frameIndex];
+        const pixBuf = srcImg.frames[frameIndex];
 
-        let w = srcImg.width;
-        let h = srcImg.height;
+        const w = srcImg.width;
+        const h = srcImg.height;
 
-        let pal = srcImg.palette;
+        const pal = srcImg.palette;
 
-        let destX = destConfig.x;
-        let destY = destConfig.y;
+        const destX = destConfig.x;
+        const destY = destConfig.y;
 
-        let upsideDown = destConfig.drawProperties.isUpsideDown;
-        let noOverwrite = destConfig.drawProperties.noOverwrite;
-        let isErase = destConfig.drawProperties.isErase;
-        let onlyOverwrite = destConfig.drawProperties.onlyOverwrite;
+        const upsideDown = destConfig.drawProperties.isUpsideDown;
+        const noOverwrite = destConfig.drawProperties.noOverwrite;
+        const isErase = destConfig.drawProperties.isErase;
+        const onlyOverwrite = destConfig.drawProperties.onlyOverwrite;
 
         for (let y = 0; y < h; y++) {
 
             for (let x = 0; x < w; x++) {
 
-                let sourceY = upsideDown ? (h - y - 1) : y;
+                const sourceY = upsideDown ? (h - y - 1) : y;
 
                 /// read source color index
-                let colorIndex = pixBuf[sourceY * w + x];
+                const colorIndex = pixBuf[sourceY * w + x];
 
                 /// ignore transparent pixels
                 if ((colorIndex & 0x80) != 0) {

@@ -10,8 +10,21 @@ export class Frame {
     private data: Uint32Array;
     public mask: Int8Array;
 
-    public getData(): Uint8ClampedArray {
-        return new Uint8ClampedArray(this.data.buffer);
+    public static fromImageData(imageData: ImageData): Frame {
+        const frame = new Frame(imageData.width, imageData.height);
+        new Uint8ClampedArray(frame.data.buffer).set(imageData.data);
+
+        for (let pixelIndex = 0; pixelIndex < frame.mask.length; pixelIndex++) {
+            frame.mask[pixelIndex] = imageData.data[pixelIndex * 4 + 3] > 0 ? 1 : 0;
+        }
+
+        return frame;
+    }
+
+    public getData(): Uint8ClampedArray<ArrayBuffer> {
+        const result = new Uint8ClampedArray(this.data.byteLength);
+        result.set(new Uint8ClampedArray(this.data.buffer, this.data.byteOffset, this.data.byteLength));
+        return result;
     }
 
     public getBuffer(): Uint32Array {

@@ -1,6 +1,6 @@
 import { Level } from '../resources/level';
 import { DisplayImage } from '../view/display-image';
-import { IActionSystem } from './action-system';
+import type { IActionSystem } from './action-system';
 import { LemmingStateType } from './lemming-state-type';
 
 export class Lemming {
@@ -54,13 +54,13 @@ export class Lemming {
 
     /** return the distance of this lemming to a given position */
     public getClickDistance(x: number, y: number): number {
-        let yCenter = this.y - 5;
-        let xCenter = this.x;
+        const yCenter = this.y - 5;
+        const xCenter = this.x;
 
-        let x1 = xCenter - 5;
-        let y1 = yCenter - 6;
-        let x2 = xCenter + 5;
-        let y2 = yCenter + 7;
+        const x1 = xCenter - 5;
+        const y1 = yCenter - 6;
+        const x2 = xCenter + 5;
+        const y2 = yCenter + 7;
 
         //console.log(this.id + ' : '+ x1 +'-'+ x2 +'  '+ y1 +'-'+ y2);
 
@@ -108,7 +108,7 @@ export class Lemming {
 
         /// run secondary action
         if (this.countdownAction) {
-            let newAction = this.countdownAction.process(level, this);
+            const newAction = this.countdownAction.process(level, this);
 
             if (newAction != LemmingStateType.NO_STATE_TYPE) {
                 return newAction;

@@ -96,15 +96,28 @@ export class DisplayImage {
     }
 
     /** draw a rect to the display */
-    public drawRect(x: number, y: number, width: number, height: number, red: number, green: number, blue: number) {
+    public drawRect(
+        x: number,
+        y: number,
+        width: number,
+        height: number,
+        red: number,
+        green: number,
+        blue: number,
+        lineWidth = 1,
+    ) {
 
-        const x2 = x + width;
-        const y2 = y + height;
+        for (let inset = 0; inset < lineWidth; inset++) {
+            const x1 = x + inset;
+            const y1 = y + inset;
+            const x2 = x + width - inset;
+            const y2 = y + height - inset;
 
-        this.drawHorizontalLine(x, y, x2, red, green, blue);
-        this.drawHorizontalLine(x, y2, x2, red, green, blue);
-        this.drawVerticalLine(x, y, y2, red, green, blue);
-        this.drawVerticalLine(x2, y, y2, red, green, blue);
+            this.drawHorizontalLine(x1, y1, x2, red, green, blue);
+            this.drawHorizontalLine(x1, y2, x2, red, green, blue);
+            this.drawVerticalLine(x1, y1, y2, red, green, blue);
+            this.drawVerticalLine(x2, y1, y2, red, green, blue);
+        }
 
     }
 
@@ -209,7 +222,15 @@ export class DisplayImage {
     }
 
     /** copy a frame to the display - transparent color is changed to (r,g,b) */
-    public drawFrameCovered(frame: Frame, posX: number, posY: number, red: number, green: number, blue: number) {
+    public drawFrameCovered(
+        frame: Frame,
+        posX: number,
+        posY: number,
+        red: number,
+        green: number,
+        blue: number,
+        scale = 1,
+    ) {
         if (!this.imgData) {
             return;
         }
@@ -219,28 +240,28 @@ export class DisplayImage {
         const srcBuffer = frame.getBuffer();
         const srcMask = frame.getMask();
 
-        const nullColor = 0xFF << 24 | blue << 16 | green << 8 | red;
-
         const destW = this.imgData.width;
         const destH = this.imgData.height;
         const destData = new Uint32Array(this.imgData.data.buffer);
 
-        const destX = posX + frame.offsetX;
-        const destY = posY + frame.offsetY;
+        scale = Math.max(1, Math.trunc(scale));
+        const destX = posX + frame.offsetX * scale;
+        const destY = posY + frame.offsetY * scale;
 
         red = this.uint8ClampedColor(red);
         green = this.uint8ClampedColor(green);
         blue = this.uint8ClampedColor(blue);
+        const nullColor = 0xFF << 24 | blue << 16 | green << 8 | red;
 
-        for (let y = 0; y < srcH; y++) {
+        for (let y = 0; y < srcH * scale; y++) {
 
             const outY = y + destY;
             if ((outY < 0) || (outY >= destH)) {
                 continue;
             }
 
-            for (let x = 0; x < srcW; x++) {
-                const srcIndex = ((srcW * y) + x);
+            for (let x = 0; x < srcW * scale; x++) {
+                const srcIndex = (srcW * Math.trunc(y / scale)) + Math.trunc(x / scale);
 
                 const outX = x + destX;
                 if ((outX < 0) || (outX >= destW)) {
@@ -262,7 +283,7 @@ export class DisplayImage {
 
 
     /** copy a frame to the display */
-    public drawFrame(frame: Frame, posX: number, posY: number) {
+    public drawFrame(frame: Frame, posX: number, posY: number, scale = 1) {
         if (!this.imgData) {
             return;
         }
@@ -276,18 +297,19 @@ export class DisplayImage {
         const destH = this.imgData.height;
         const destData = new Uint32Array(this.imgData.data.buffer);
 
-        const destX = posX + frame.offsetX;
-        const destY = posY + frame.offsetY;
+        scale = Math.max(1, Math.trunc(scale));
+        const destX = posX + frame.offsetX * scale;
+        const destY = posY + frame.offsetY * scale;
 
-        for (let y = 0; y < srcH; y++) {
+        for (let y = 0; y < srcH * scale; y++) {
 
             const outY = y + destY;
             if ((outY < 0) || (outY >= destH)) {
                 continue;
             }
 
-            for (let x = 0; x < srcW; x++) {
-                const srcIndex = ((srcW * y) + x);
+            for (let x = 0; x < srcW * scale; x++) {
+                const srcIndex = (srcW * Math.trunc(y / scale)) + Math.trunc(x / scale);
 
                 /// ignore transparent pixels
                 if (srcMask[srcIndex] == 0) {

@@ -28,7 +28,7 @@ export class GameDisplay {
             }
 
             //console.log(e.x +' '+ e.y);
-            let lem = this.lemmingManager.getLemmingAt(e.x, e.y);
+            const lem = this.lemmingManager.getLemmingAt(e.x, e.y);
             if (!lem) {
                 return;
             }

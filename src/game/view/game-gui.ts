@@ -20,6 +20,7 @@ export class GameGui {
 
     private display?: DisplayImage;
     private deltaReleaseRate = 0;
+    private panelScale = 1;
 
     constructor(private game: Game,
         private skillPanelSprites: SkillPanelSprites,
@@ -59,7 +60,7 @@ export class GameGui {
 
     /// handel click on the skills panel
     private handleSkillMouseDown(x: number) {
-        const panelIndex = Math.trunc(x / 16);
+        const panelIndex = Math.trunc(x / (16 * this.panelScale));
 
         if (panelIndex == 0) {
             this.deltaReleaseRate = -3;
@@ -88,7 +89,7 @@ export class GameGui {
 
 
     public handleSkillDoubleClick(x: number) {
-        const panelIndex = Math.trunc(x / 16);
+        const panelIndex = Math.trunc(x / (16 * this.panelScale));
 
         /// trigger the nuke for all lemmings
         if (panelIndex == 11) {
@@ -108,7 +109,7 @@ export class GameGui {
                 return;
             }
 
-            if (e.y > 15) {
+            if (e.y > 15 * this.panelScale) {
                 this.handleSkillMouseDown(e.x);
             }
         });
@@ -126,7 +127,7 @@ export class GameGui {
                 return;
             }
 
-            if (e.y > 15) {
+            if (e.y > 15 * this.panelScale) {
                 this.handleSkillDoubleClick(e.x);
             }
 
@@ -153,6 +154,7 @@ export class GameGui {
             this.backgroundChanged = false;
 
             const panelImage = this.skillPanelSprites.getPanelSprite();
+            this.panelScale = this.skillPanelSprites.getScale();
             display.initSize(panelImage.width, panelImage.height);
             display.setBackground(panelImage.getData());
 
@@ -237,7 +239,16 @@ export class GameGui {
 
     /** draw a white rectangle border to the panel */
     private drawSelection(display: DisplayImage, panelIndex: number) {
-        display.drawRect(16 * panelIndex, 16, 16, 23, 255, 255, 255);
+        display.drawRect(
+            16 * panelIndex * this.panelScale,
+            16 * this.panelScale,
+            16 * this.panelScale,
+            23 * this.panelScale,
+            255,
+            255,
+            255,
+            this.panelScale,
+        );
     }
 
     /** draw the game time to the panel */
@@ -259,12 +270,20 @@ export class GameGui {
             const num1Img = this.skillPanelSprites.getNumberSpriteLeft(Math.floor(number / 10));
             const num2Img = this.skillPanelSprites.getNumberSpriteRight(number % 10);
 
-            display.drawFrameCovered(num1Img, x, y, 0, 0, 0);
-            display.drawFrame(num2Img, x, y);
+            display.drawFrameCovered(
+                num1Img,
+                x * this.panelScale,
+                y * this.panelScale,
+                0,
+                0,
+                0,
+                this.panelScale,
+            );
+            display.drawFrame(num2Img, x * this.panelScale, y * this.panelScale, this.panelScale);
         }
         else {
             const numImg = this.skillPanelSprites.getNumberSpriteEmpty();
-            display.drawFrame(numImg, x, y);
+            display.drawFrame(numImg, x * this.panelScale, y * this.panelScale, this.panelScale);
         }
 
 
@@ -279,7 +298,15 @@ export class GameGui {
             const letterImg = this.skillPanelSprites.getLetterSprite(text[i]);
 
             if (letterImg != null) {
-                display.drawFrameCovered(letterImg, x, y, 0, 0, 0);
+                display.drawFrameCovered(
+                    letterImg,
+                    x * this.panelScale,
+                    y * this.panelScale,
+                    0,
+                    0,
+                    0,
+                    this.panelScale,
+                );
             }
 
             x += 8;

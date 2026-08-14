@@ -21,7 +21,7 @@
 */
 
 
-import { Chip } from './chip';
+import { Chip } from './Chip';
 import { GlobalMembers } from './global-members';
 import { MixerChannel } from './mixer-channel';
 
@@ -39,7 +39,7 @@ export class Handler {
     }
 
     public Generate(chan: MixerChannel, samples: number /* short */): void {
-        let buffer = new Int32Array(512 * 2);
+        const buffer = new Int32Array(512 * 2);
         if ((samples > 512)) {
             samples = 512;
         }

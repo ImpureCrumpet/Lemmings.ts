@@ -1,7 +1,7 @@
 import { AudioConfig } from '@/game/config/audio-config';
 import { LogHandler } from '@/game/utilities/log-handler';
 import { BinaryReader } from '../file/binary-reader';
-import { AdlibCommandCallback } from './sound-image-player';
+import type { AdlibCommandCallback } from './sound-image-player';
 
 /*eslint no-constant-condition: ["error", { "checkLoops": false }]*/
 

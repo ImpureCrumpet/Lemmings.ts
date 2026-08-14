@@ -35,6 +35,8 @@ export class ZoomEventArguments extends Position2D {
 /** handel the user events on the stage */
 export class UserInputManager {
 
+    private readonly eventController = new AbortController();
+
     private mouseDownX = 0;
     private mouseDownY = 0;
 
@@ -51,6 +53,9 @@ export class UserInputManager {
 
     constructor(listenElement: HTMLElement) {
 
+        const eventOptions = { signal: this.eventController.signal };
+        const touchEventOptions = { ...eventOptions, passive: false };
+
         listenElement.addEventListener('mousemove', (e: MouseEvent) => {
             const relativePos = this.getRelativePosition(listenElement, e.clientX, e.clientY);
             this.handelMouseMove(relativePos);
@@ -59,28 +64,36 @@ export class UserInputManager {
             e.preventDefault();
 
             return false;
-        });
+        }, eventOptions);
 
 
         listenElement.addEventListener('touchmove', (e: TouchEvent) => {
-            const relativePos = this.getRelativePosition(listenElement, e.touches[0].clientX, e.touches[0].clientY);
+            const touch = e.touches[0];
+            if (!touch) {
+                return;
+            }
+            const relativePos = this.getRelativePosition(listenElement, touch.clientX, touch.clientY);
             this.handelMouseMove(relativePos);
 
             e.stopPropagation();
             e.preventDefault();
 
             return false;
-        });
+        }, touchEventOptions);
 
         listenElement.addEventListener('touchstart', (e: TouchEvent) => {
-            const relativePos = this.getRelativePosition(listenElement, e.touches[0].clientX, e.touches[0].clientY);
+            const touch = e.touches[0];
+            if (!touch) {
+                return;
+            }
+            const relativePos = this.getRelativePosition(listenElement, touch.clientX, touch.clientY);
             this.handelMouseDown(relativePos);
 
             e.stopPropagation();
             e.preventDefault();
 
             return false;
-        });
+        }, touchEventOptions);
 
         listenElement.addEventListener('mousedown', (e: MouseEvent) => {
             const relativePos = this.getRelativePosition(listenElement, e.clientX, e.clientY);
@@ -90,7 +103,7 @@ export class UserInputManager {
             e.preventDefault();
 
             return false;
-        });
+        }, eventOptions);
 
         listenElement.addEventListener('mouseup', (e: MouseEvent) => {
             const relativePos = this.getRelativePosition(listenElement, e.clientX, e.clientY);
@@ -100,23 +113,28 @@ export class UserInputManager {
             e.preventDefault();
 
             return false;
-        });
+        }, eventOptions);
 
         listenElement.addEventListener('mouseleave', () => {
             this.handelMouseClear();
-        });
+        }, eventOptions);
 
         listenElement.addEventListener('touchend', (e: TouchEvent) => {
-            const relativePos = this.getRelativePosition(listenElement, e.touches[0].clientX, e.touches[0].clientY);
+            const touch = e.changedTouches[0];
+            if (!touch) {
+                this.handelMouseClear();
+                return;
+            }
+            const relativePos = this.getRelativePosition(listenElement, touch.clientX, touch.clientY);
             this.handelMouseUp(relativePos);
 
             return false;
-        });
+        }, touchEventOptions);
 
         listenElement.addEventListener('touchcancel', () => {
             this.handelMouseClear();
             return false;
-        });
+        }, eventOptions);
 
 
         listenElement.addEventListener('dblclick', (e: MouseEvent) => {
@@ -127,7 +145,7 @@ export class UserInputManager {
             e.preventDefault();
 
             return false;
-        });
+        }, eventOptions);
 
 
 
@@ -139,7 +157,7 @@ export class UserInputManager {
             e.preventDefault();
 
             return false;
-        });
+        }, { ...touchEventOptions });
 
     }
 
@@ -149,7 +167,25 @@ export class UserInputManager {
 
         const rect = element.getBoundingClientRect();
 
+        if (element instanceof HTMLCanvasElement) {
+            const scaleX = element.width / rect.width;
+            const scaleY = element.height / rect.height;
+            return new Position2D(
+                (clientX - rect.left) * scaleX,
+                (clientY - rect.top) * scaleY,
+            );
+        }
+
         return new Position2D(clientX - rect.left, clientY - rect.top);
+    }
+
+    public dispose(): void {
+        this.eventController.abort();
+        this.onMouseMove.dispose();
+        this.onMouseUp.dispose();
+        this.onMouseDown.dispose();
+        this.onDoubleClick.dispose();
+        this.onZoom.dispose();
     }
 
 

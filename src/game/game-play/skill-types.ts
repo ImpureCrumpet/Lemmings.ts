@@ -13,7 +13,7 @@
     };
 
     /** helper functions for SkillTypes */
-    export module SkillTypes {
+    export namespace SkillTypes {
 
         export function toString(type: SkillTypes): string {
             return SkillTypes[type];

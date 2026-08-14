@@ -3,7 +3,7 @@ import { TriggerTypes } from '@/game/resources/lemmings/trigger-types';
 import { Level } from '@/game/resources/level';
 import { SpriteTypes } from '@/game/resources/sprite-types';
 import { DisplayImage } from '@/game/view/display-image';
-import { IActionSystem } from '../action-system';
+import type { IActionSystem } from '../action-system';
 import { Lemming } from '../lemming';
 import { LemmingStateType } from '../lemming-state-type';
 import { SoundSystem } from '../sound-system';

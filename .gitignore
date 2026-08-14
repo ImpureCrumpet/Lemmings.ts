@@ -1,6 +1,7 @@
 .DS_Store
 node_modules
 /dist
+/temp/
 
 
 # local env files
@@ -25,3 +26,4 @@ pnpm-debug.log*
 /public/data/**/*.exe
 /public/data/**/*.bat
 /public/data/**/*.com
+/public/data/**/toolbar.png

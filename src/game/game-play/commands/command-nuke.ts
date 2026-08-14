@@ -1,5 +1,5 @@
 import { Game } from '@/game/game';
-import { ICommand } from './command';
+import type { ICommand } from './command';
 
 /** Commands a all lemmings nuke */
 export class CommandNuke implements ICommand {

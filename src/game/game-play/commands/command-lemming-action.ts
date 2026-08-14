@@ -1,6 +1,6 @@
 import { Game } from '@/game/game';
 import { LogHandler } from '@/game/utilities/log-handler';
-import { ICommand } from './command';
+import type { ICommand } from './command';
 
     /** Commands actions on lemmings the user has given */
     export class CommandLemmingsAction implements ICommand {
@@ -33,16 +33,16 @@ import { ICommand } from './command';
         /** execute this command */
         execute(game: Game): boolean {
 
-            let lemManager = game.getLemmingManager();
-            let lem = lemManager.getLemming(this.lemmingId);
+            const lemManager = game.getLemmingManager();
+            const lem = lemManager.getLemming(this.lemmingId);
 
             if (!lem) {
                 this.log.log('Lemming not found! ' + this.lemmingId);
                 return false;
             }
 
-            let skills = game.getGameSkills();
-            let selectedSkill = skills.getSelectedSkill();
+            const skills = game.getGameSkills();
+            const selectedSkill = skills.getSelectedSkill();
 
             if (!skills.canDecreaseSkill(selectedSkill)) {
                 this.log.log('Not enough skills!');

@@ -3,7 +3,7 @@ import { EventHandler } from '../utilities/event-handler';
 import { SkillTypes } from './skill-types';
 
 export class GameSkills {
-    private skills: SkillTypes[];
+    private skills: number[];
     private selectedSkill: SkillTypes = SkillTypes.CLIMBER;
 
     constructor(level: Level) {
@@ -60,7 +60,7 @@ export class GameSkills {
     public cheat() {
         for (let i = 0; i < this.skills.length; i++) {
             this.skills[i] = 99;
-            this.onCountChanged.trigger(i);
+            this.onCountChanged.trigger(i as SkillTypes);
         }
     }
 

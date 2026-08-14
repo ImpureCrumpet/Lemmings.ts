@@ -38,7 +38,7 @@ export class Level {
     public releaseCount = 0;
     public needCount = 0;
     public timeLimit = 0;
-    public skills: SkillTypes[] = new Array(SkillTypes.length());
+    public skills: number[] = new Array(SkillTypes.length());
     public screenPositionX = 0;
 
     public isSuperLemming = false;
@@ -191,4 +191,3 @@ export class Level {
     }
 
 }
-

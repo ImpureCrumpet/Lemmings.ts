@@ -1,7 +1,7 @@
 import { GameResources } from './game-resources';
 import { GameResult } from './game-result';
 import { GameStateTypes } from './game-state-types';
-import { ICommand } from './game-play/commands/command';
+import type { ICommand } from './game-play/commands/command';
 import { CommandManager } from './game-play/commands/command-manager';
 import { GameSkills } from './game-play/game-skills';
 import { GameTimer } from './game-play/game-timer';

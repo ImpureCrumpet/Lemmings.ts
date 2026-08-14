@@ -20,7 +20,6 @@ export class BitWriter {
 	public copyRawData(length: number) {
 		if (this.outPos - length < 0) {
 			this.log.log("copyRawData: out of out buffer");
-			length = this.outPos;
 			return;
 		}
 
@@ -34,19 +33,17 @@ export class BitWriter {
 	public copyReferencedData(length: number, offsetBitCount: number) {
 
 		/// read offset to current write pointer to read from
-		let offset = this.bitReader.read(offsetBitCount) + 1;
+		const offset = this.bitReader.read(offsetBitCount) + 1;
 
 		/// is offset in range?
 		if (this.outPos + offset > this.outData.length) {
 			this.log.log("copyReferencedData: offset out of range");
-			offset = 0;
 			return;
 		}
 
 		/// is length in range
 		if (this.outPos - length < 0) {
 			this.log.log("copyReferencedData: out of out buffer");
-			length = this.outPos;
 			return;
 		}
 

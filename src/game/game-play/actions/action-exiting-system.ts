@@ -2,7 +2,7 @@ import { LemmingsSprite } from '@/game/resources/lemmings-sprite';
 import { Level } from '@/game/resources/level';
 import { SpriteTypes } from '@/game/resources/sprite-types';
 import { DisplayImage } from '@/game/view/display-image';
-import { IActionSystem } from '../action-system';
+import type { IActionSystem } from '../action-system';
 import { GameVictoryCondition } from '../game-victory-condition';
 import { Lemming } from '../lemming';
 import { LemmingStateType } from '../lemming-state-type';
@@ -23,14 +23,14 @@ export class ActionExitingSystem implements IActionSystem {
         return 'exiting';
     }
 
-    public triggerLemAction(lem: Lemming): boolean {
+    public triggerLemAction(_lem: Lemming): boolean {
         return false;
     }
 
     /** render Lemming to game display */
     public draw(gameDisplay: DisplayImage, lem: Lemming) {
 
-        let frame = this.sprite.getFrame(lem.frameIndex);
+        const frame = this.sprite.getFrame(lem.frameIndex);
 
         gameDisplay.drawFrame(frame, lem.x, lem.y);
     }

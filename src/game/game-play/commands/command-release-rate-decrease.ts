@@ -1,6 +1,6 @@
 import { Game } from '@/game/game';
 import { LogHandler } from '@/game/utilities/log-handler';
-import { ICommand } from './command';
+import type { ICommand } from './command';
 
 /** Increase the release rate */
 export class CommandReleaseRateDecrease implements ICommand {
@@ -32,7 +32,7 @@ export class CommandReleaseRateDecrease implements ICommand {
 
     /** execute this command */
     execute(game: Game): boolean {
-        let victoryConditions = game.getVictoryCondition();
+        const victoryConditions = game.getVictoryCondition();
         return victoryConditions.changeReleaseRate(-this.number);
     }
 }

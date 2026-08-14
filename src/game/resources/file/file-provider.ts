@@ -1,4 +1,5 @@
 import { LogHandler } from '@/game/utilities/log-handler';
+import { Frame } from '../frame';
 import { BinaryReader } from './binary-reader';
 
 /**
@@ -20,79 +21,89 @@ export class FileProvider {
 
 
   /** load binary data from URL: rootPath + [path] + filename */
-  public loadBinary(path: string, filename?: string): Promise<BinaryReader> {
+  public async loadBinary(path: string, filename?: string): Promise<BinaryReader> {
 
     const url = this.createFullUrl(path, filename);
 
     this.log.debug('loading:' + url);
 
-    return new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Unable to load ${url}: ${response.status} ${response.statusText}`);
+    }
 
-      xhr.onload = () => {
+    const contentType = response.headers.get('content-type') ?? '';
+    if (contentType.includes('text/html')) {
+      throw new Error(`Game data file not found: ${url}`);
+    }
 
-        if (xhr.status >= 200 && xhr.status < 300) {
-          const reader = new BinaryReader(xhr.response, 0, null, this.fileNameFormUrl(url));
-          resolve(reader);
-
-        } else {
-
-          this.log.log('error load file:' + url);
-          reject({ status: xhr.status, statusText: xhr.statusText });
-        }
-      };
-
-
-      xhr.onerror = () => {
-        this.log.log('error load file:' + url);
-        reject({ status: xhr.status, statusText: xhr.statusText });
-      };
-
-      xhr.open('GET', url);
-      xhr.responseType = 'arraybuffer';
-
-      xhr.send();
-    });
+    return new BinaryReader(
+      await response.arrayBuffer(),
+      0,
+      null,
+      this.fileNameFormUrl(url),
+    );
   }
 
 
   /** load string data from URL */
-  public loadString(path: string, filename?: string): Promise<string> {
+  public async loadString(path: string, filename?: string): Promise<string> {
 
     const url = this.createFullUrl(path, filename);
 
     this.log.log('Load file as string: ' + url);
 
-    return new Promise((resolve, reject) => {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Unable to load ${url}: ${response.status} ${response.statusText}`);
+    }
 
-      const xhr = new XMLHttpRequest();
+    return response.text();
+  }
 
-      xhr.onload = () => {
-        resolve(xhr.response);
+  /** Load an optional browser image. Missing files return undefined. */
+  public async loadOptionalImage(path: string, filename: string): Promise<Frame | undefined> {
+    const url = this.createFullUrl(path, filename);
+    const response = await fetch(url);
+
+    if (response.status === 404) {
+      return undefined;
+    }
+
+    if (!response.ok) {
+      throw new Error(`Unable to load ${url}: ${response.status} ${response.statusText}`);
+    }
+
+    const contentType = response.headers.get('content-type') ?? '';
+    if (!contentType.startsWith('image/')) {
+      return undefined;
+    }
+
+    const bitmap = await createImageBitmap(await response.blob());
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = bitmap.width;
+      canvas.height = bitmap.height;
+
+      const context = canvas.getContext('2d');
+      if (!context) {
+        throw new Error(`Unable to decode ${url}`);
       }
 
-      xhr.onerror = () => {
-        this.log.log('error load file:' + url);
-        reject({ status: xhr.status, statusText: xhr.statusText });
-      }
-
-      /// setup query
-      xhr.open('GET', url, true);
-      xhr.responseType = 'text';
-
-
-      /// call url
-      xhr.send(null);
-    });
+      context.drawImage(bitmap, 0, 0);
+      return Frame.fromImageData(context.getImageData(0, 0, bitmap.width, bitmap.height));
+    } finally {
+      bitmap.close();
+    }
   }
 
 
   // Extract filename form URL
   private fileNameFormUrl(url: string): string {
-    if (url == '') return '';
+    if (url === '') return '';
 
-    url = url.substring(0, (url.indexOf('#') == -1) ? url.length : url.indexOf('#'));
-    url = url.substring(0, (url.indexOf('?') == -1) ? url.length : url.indexOf('?'));
+    url = url.substring(0, (url.indexOf('#') === -1) ? url.length : url.indexOf('#'));
+    url = url.substring(0, (url.indexOf('?') === -1) ? url.length : url.indexOf('?'));
     url = url.substring(url.lastIndexOf('/') + 1, url.length);
 
     return url;

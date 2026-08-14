@@ -33,7 +33,7 @@ export class SolidLayer {
             return false;
         }
 
-        let index = x + y * this.width;
+        const index = x + y * this.width;
 
         this.groundMask[index] = 0;
     }
@@ -44,7 +44,7 @@ export class SolidLayer {
             return false;
         }
         
-        let index = x + y * this.width;
+        const index = x + y * this.width;
 
         this.groundMask[index] = 1;
     }

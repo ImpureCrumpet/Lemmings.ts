@@ -16,9 +16,9 @@
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-import { Channel } from './channel';
+import { Channel } from './Channel';
 import { GlobalMembers } from './global-members';
-import { Operator } from './operator';
+import { Operator } from './Operator';
 import { SynthMode } from './db-opl3';
 
 /* 
@@ -188,7 +188,7 @@ export class Chip {
     }
 
     public WriteReg(reg: number /* int */, val: number /** byte */): void {
-        let index = 0;
+        let index: number;
 
         switch ((reg & 0xf0) >>> 4) {
 
@@ -527,4 +527,3 @@ export class Chip {
         }
     }
 }
-

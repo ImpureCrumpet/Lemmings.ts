@@ -1,7 +1,7 @@
 import { Game } from '@/game/game';
 import { LogHandler } from '@/game/utilities/log-handler';
 import { SkillTypes } from '../skill-types';
-import { ICommand } from './command';
+import type { ICommand } from './command';
 
 /** Commands actions on lemmings the user has given */
 export class CommandSelectSkill implements ICommand {
@@ -34,7 +34,7 @@ export class CommandSelectSkill implements ICommand {
     /** execute this command */
     execute(game: Game): boolean {
 
-        let gameSkill = game.getGameSkills();
+        const gameSkill = game.getGameSkills();
         if (!gameSkill) {
             return false;
         }

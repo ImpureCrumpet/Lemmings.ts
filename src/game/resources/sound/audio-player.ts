@@ -1,6 +1,6 @@
 import { LogHandler } from '@/game/utilities/log-handler';
-import { OPL } from './dbopl/db-opl3';
-import { IOpl3 } from './opl3';
+import { OPL } from './DBOPL/db-opl3';
+import type { IOpl3 } from './opl3';
 import { SoundImagePlayer } from './sound-image-player';
 
 export class AudioPlayer {
@@ -153,7 +153,7 @@ export class AudioPlayer {
             if (this.audioCtx) {
                 this.audioCtx.close();
             }
-        } catch (ex) {
+        } catch {
             // nothing to do here
         }
 
@@ -166,7 +166,7 @@ export class AudioPlayer {
                 this.source.disconnect(this.processor);
             }
             
-        } catch (ex) {
+        } catch {
             // nothing to do here
          }
 

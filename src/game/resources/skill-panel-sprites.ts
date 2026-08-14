@@ -6,6 +6,9 @@ import { PaletteImage } from './lemmings/palette-image';
 /** manage the sprites need for the game skill panel */
 export class SkillPanelSprites {
 
+    public static readonly baseWidth = 320;
+    public static readonly baseHeight = 40;
+
     private panelSprite: Frame;
     private letterSprite: { [key: string]: Frame } = {};
     private numberSpriteLeft: Frame[] = [];
@@ -15,6 +18,29 @@ export class SkillPanelSprites {
     /** return the sprite for the skill panel */
     public getPanelSprite(): Frame {
         return this.panelSprite;
+    }
+
+    public static getPanelScale(width: number, height: number): number | undefined {
+        const scale = width / SkillPanelSprites.baseWidth;
+
+        if (!Number.isInteger(scale) || scale < 1 || scale > 4) {
+            return undefined;
+        }
+
+        return height === SkillPanelSprites.baseHeight * scale ? scale : undefined;
+    }
+
+    public getScale(): number {
+        return SkillPanelSprites.getPanelScale(this.panelSprite.width, this.panelSprite.height) ?? 1;
+    }
+
+    public setPanelSprite(panelSprite: Frame): boolean {
+        if (SkillPanelSprites.getPanelScale(panelSprite.width, panelSprite.height) === undefined) {
+            return false;
+        }
+
+        this.panelSprite = panelSprite;
+        return true;
     }
 
     /** return a green letter */
@@ -39,7 +65,7 @@ export class SkillPanelSprites {
     constructor(fr2: BinaryReader, fr6: BinaryReader, colorPalette: ColorPalette) {
 
         /// read skill panel
-        const paletteImg = new PaletteImage(320, 40);
+        const paletteImg = new PaletteImage(SkillPanelSprites.baseWidth, SkillPanelSprites.baseHeight);
         paletteImg.readImageData(fr6, 4);
         this.panelSprite = paletteImg.createFrame(colorPalette);
 

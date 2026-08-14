@@ -3,7 +3,7 @@ import { Level } from '@/game/resources/level';
 import { SolidLayer } from '@/game/resources/solid-layer';
 import { SpriteTypes } from '@/game/resources/sprite-types';
 import { DisplayImage } from '@/game/view/display-image';
-import { IActionSystem } from '../action-system';
+import type { IActionSystem } from '../action-system';
 import { Lemming } from '../lemming';
 import { LemmingStateType } from '../lemming-state-type';
 import { SoundSystem } from '../sound-system';
@@ -22,9 +22,9 @@ export class ActionWalkSystem implements IActionSystem {
 
     /** render Lemming to game display */
     public draw(gameDisplay: DisplayImage, lem: Lemming) {
-        let ani = this.sprite[(lem.lookRight ? 1 : 0)];
+        const ani = this.sprite[(lem.lookRight ? 1 : 0)];
 
-        let frame = ani.getFrame(lem.frameIndex);
+        const frame = ani.getFrame(lem.frameIndex);
 
         gameDisplay.drawFrame(frame, lem.x, lem.y);
     }
@@ -35,7 +35,7 @@ export class ActionWalkSystem implements IActionSystem {
     }
 
 
-    public triggerLemAction(lem: Lemming): boolean {
+    public triggerLemAction(_lem: Lemming): boolean {
         return false;
     }
 
@@ -63,9 +63,9 @@ export class ActionWalkSystem implements IActionSystem {
         lem.frameIndex++;
         lem.x += (lem.lookRight ? 1 : -1);
 
-        let groundMask = level.getGroundMaskLayer();
+        const groundMask = level.getGroundMaskLayer();
 
-        let upDelta = this.getGroundStepDelta(groundMask, lem.x, lem.y);
+        const upDelta = this.getGroundStepDelta(groundMask, lem.x, lem.y);
 
         if (upDelta == 8) {
             // collision with obstacle
@@ -93,7 +93,7 @@ export class ActionWalkSystem implements IActionSystem {
         }
         else {
             // walk or fall
-            let downDelta = this.getGroudGapDelta(groundMask, lem.x, lem.y);
+            const downDelta = this.getGroudGapDelta(groundMask, lem.x, lem.y);
 
             lem.y += downDelta;
 

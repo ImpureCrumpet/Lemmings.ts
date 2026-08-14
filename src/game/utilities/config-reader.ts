@@ -10,17 +10,7 @@ export class ConfigReader {
 
 
     constructor(configFile: Promise<string>) {
-
-        this.configs = new Promise<GameConfig[]>((resolve) => {
-
-            configFile.then((jsonString) => {
-
-                const configJson: GameConfig[] = this.parseConfig(jsonString);
-
-                resolve(configJson);
-            }
-            );
-        });
+        this.configs = configFile.then((jsonString) => this.parseConfig(jsonString));
 
     }
 
@@ -51,8 +41,11 @@ export class ConfigReader {
 
         try {
             config = <any[]>JSON.parse(jsonData);
-        } catch (e) {
-            this.log.log('Unable to parse config', e);
+        } catch (error) {
+            this.log.log(
+                'Unable to parse config',
+                error instanceof Error ? error : new Error(String(error)),
+            );
             return gameConfigs;
         }
 

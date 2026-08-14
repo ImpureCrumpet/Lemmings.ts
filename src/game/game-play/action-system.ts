@@ -1,6 +1,7 @@
-import { Level } from '../resources/level';
-import { Lemming } from './lemming';
-import { LemmingStateType } from './lemming-state-type';
+import type { Level } from '../resources/level';
+import type { DisplayImage } from '../view/display-image';
+import type { Lemming } from './lemming';
+import type { LemmingStateType } from './lemming-state-type';
 
 export interface IActionSystem {
 
@@ -16,4 +17,3 @@ export interface IActionSystem {
     /** trigger a action by the player */
     triggerLemAction(lem : Lemming): boolean;
 }
-

@@ -23,7 +23,7 @@ export class MapObject {
         this.animation.firstFrameIndex = objectImg.firstFrameIndex;
 
         for (let i = 0; i < objectImg.frames.length; i++) {
-            let newFrame = new Frame(objectImg.width, objectImg.height);
+            const newFrame = new Frame(objectImg.width, objectImg.height);
 
             //newFrame.clear();
             newFrame.drawPaletteImage(objectImg.frames[i], objectImg.width, objectImg.height, objectImg.palette, 0, 0);

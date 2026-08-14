@@ -1,7 +1,7 @@
 import { Game } from '@/game/game';
 import { LogHandler } from '@/game/utilities/log-handler';
 import { GameTimer } from '../game-timer';
-import { ICommand } from './command';
+import type { ICommand } from './command';
 import { CommandLemmingsAction } from './command-lemming-action';
 import { CommandNuke } from './command-nuke';
 import { CommandReleaseRateDecrease } from './command-release-rate-decrease';
@@ -22,7 +22,7 @@ export class CommandManager {
                 return;
             }
 
-            let command = this.runCommands[tick];
+            const command = this.runCommands[tick];
             if (!command) return;
 
             this.queueCommand(command);
@@ -33,13 +33,13 @@ export class CommandManager {
     /** load parameters for this command from serializer */
     public loadReplay(replayString: string): void {
 
-        let parts = replayString.split('&');
+        const parts = replayString.split('&');
         for (let i = 0; i < parts.length; i++) {
-            let commandStr = parts[i].split('=', 2);
+            const commandStr = parts[i].split('=', 2);
             if (commandStr.length != 2) continue;
 
-            let tick = (+commandStr[0]) | 0;
-            let newCmd = this.parseCommand(commandStr[1]);
+            const tick = (+commandStr[0]) | 0;
+            const newCmd = this.parseCommand(commandStr[1]);
 
             if (newCmd) {
                 this.runCommands[tick] = newCmd;
@@ -69,12 +69,12 @@ export class CommandManager {
             return null;
         }
 
-        let newCommand = this.commandFactory(valuesStr.substr(0, 1));
+        const newCommand = this.commandFactory(valuesStr.substr(0, 1));
         if (!newCommand) {
             return null;
         }
 
-        let values = valuesStr.substr(1).split(':');
+        const values = valuesStr.substr(1).split(':');
         newCommand.load(values.map(Number));
 
         return newCommand;
@@ -82,7 +82,7 @@ export class CommandManager {
 
     /** add a command to execute queue */
     public queueCommand(newCommand: ICommand) {
-        let currentTick = this.gameTimer.getGameTicks();
+        const currentTick = this.gameTimer.getGameTicks();
 
         if (newCommand.execute(this.game)) {
             // only log commands that are executable
@@ -92,10 +92,10 @@ export class CommandManager {
 
 
     public serialize(): string {
-        let result: string[] = [];
+        const result: string[] = [];
 
         Object.keys(this.loggedCommands).forEach((key) => {
-            let command = this.loggedCommands[+key];
+            const command = this.loggedCommands[+key];
 
             result.push(key + '=' + command.getCommandKey() + command.save().join(':'));
 

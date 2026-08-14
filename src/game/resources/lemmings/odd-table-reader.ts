@@ -31,10 +31,10 @@ export class OddTableReader {
         fr.setOffset(0);
 
         /// count of levels definitions
-        let count = Math.trunc(fr.length / 56);
+        const count = Math.trunc(fr.length / 56);
 
         for (let i = 0; i < count; i++) {
-            let prop = new LevelProperties();
+            const prop = new LevelProperties();
 
             prop.releaseRate = fr.readWord();
             prop.releaseCount = fr.readWord();

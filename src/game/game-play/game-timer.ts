@@ -6,7 +6,7 @@ export class GameTimer {
 
     private _speedFactor: number = 1;
 
-    private gameTimerHandler: number = 0;
+    private gameTimerHandler: ReturnType<typeof setInterval> | undefined;
 
     /** the current game time in number of steps the game has made  */
     private tickIndex: number = 0;
@@ -18,7 +18,7 @@ export class GameTimer {
 
     /** return if the game timer is running or not */
     public isRunning(): boolean {
-        return (this.gameTimerHandler != 0);
+        return this.gameTimerHandler !== undefined;
     }
 
     /** define a factor to speed up >1 or slow down <1 the game */
@@ -46,10 +46,10 @@ export class GameTimer {
 
     /** Pause the game */
     public suspend() {
-        if (this.gameTimerHandler != 0) {
+        if (this.gameTimerHandler !== undefined) {
             clearInterval(this.gameTimerHandler);
         }
-        this.gameTimerHandler = 0;
+        this.gameTimerHandler = undefined;
     }
 
     /** End the game */
@@ -107,10 +107,10 @@ export class GameTimer {
 
     /** return the left game time in seconds */
     public getGameLeftTimeString(): string {
-        let leftSeconds = this.getGameLeftTime();
-        let secondsStr = "0" + Math.floor(leftSeconds % 60);
+        const leftSeconds = this.getGameLeftTime();
+        const secondsStr = "0" + Math.floor(leftSeconds % 60);
 
-        return Math.floor(leftSeconds / 60) + "-" + secondsStr.substr(secondsStr.length - 2, 2);
+        return Math.floor(leftSeconds / 60) + "-" + secondsStr.slice(-2);
     }
 
     /** convert a game-ticks-time to in game-seconds. Returns Float */
