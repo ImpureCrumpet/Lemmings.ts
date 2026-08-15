@@ -2,6 +2,7 @@
   "name": "lemmings-gui",
   "version": "0.1.0",
   "private": true,
+  "license": "SEE LICENSE IN LICENSE",
   "type": "module",
   "engines": {
     "node": ">=20.19.0"
@@ -15,7 +16,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:unit": "vitest run",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "licenses:inventory": "node scripts/generate-license-inventory.mjs",
+    "licenses:check": "node scripts/generate-license-inventory.mjs --check",
+    "audit:release": "npm run build && node scripts/audit-release.mjs dist"
   },
   "dependencies": {
     "vue": "^3.5.41",

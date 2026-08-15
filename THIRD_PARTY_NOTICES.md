@@ -27,5 +27,18 @@ They are user-supplied, ignored by Git, and must not be included in source or
 release artifacts without separate permission. The placeholder README files
 under `public/data/` describe the expected local layout.
 
+Tracked visual files and their current review status are listed in
+`docu/ASSET-PROVENANCE.md`. No replacement toolbar artwork is currently
+vendored.
+
+## npm packages
+
+The exact direct development dependencies and conservative production
+installation graph are generated from `package-lock.json` in
+`docu/DEPENDENCY-LICENSES.md`. These packages retain their own licenses and
+copyright notices. The current repository is private; preserving any additional
+license texts required by a future external binary distribution is an explicit
+release-gate item in `docu/DISTRIBUTION.md`.
+
 This notice records the repository's provenance review; it is not legal
 advice.

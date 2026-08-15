@@ -1,10 +1,29 @@
 import { fileURLToPath, URL } from 'node:url';
-import { copyFile, mkdir } from 'node:fs/promises';
+import { copyFile, mkdir, readdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import vue from '@vitejs/plugin-vue';
 import { defineConfig } from 'vitest/config';
 
 const projectRoot = fileURLToPath(new URL('.', import.meta.url));
+
+async function copyDataPlaceholders(sourceDirectory: string, outputDirectory: string): Promise<void> {
+  const entries = await readdir(sourceDirectory, { withFileTypes: true });
+
+  await Promise.all(entries.map(async (entry) => {
+    const sourcePath = resolve(sourceDirectory, entry.name);
+    const outputPath = resolve(outputDirectory, entry.name);
+
+    if (entry.isDirectory()) {
+      await copyDataPlaceholders(sourcePath, outputPath);
+      return;
+    }
+
+    if (entry.isFile() && (entry.name === 'README.md' || entry.name === 'config.json')) {
+      await mkdir(outputDirectory, { recursive: true });
+      await copyFile(sourcePath, outputPath);
+    }
+  }));
+}
 
 export default defineConfig({
   plugins: [
@@ -16,6 +35,14 @@ export default defineConfig({
         const licenseDirectory = resolve(outputDirectory, 'LICENSES');
         await mkdir(licenseDirectory, { recursive: true });
         await Promise.all([
+          copyFile(
+            resolve(projectRoot, 'public/favicon.ico'),
+            resolve(outputDirectory, 'favicon.ico'),
+          ),
+          copyDataPlaceholders(
+            resolve(projectRoot, 'public/data'),
+            resolve(outputDirectory, 'data'),
+          ),
           copyFile(resolve(projectRoot, 'LICENSE'), resolve(outputDirectory, 'LICENSE')),
           copyFile(
             resolve(projectRoot, 'THIRD_PARTY_NOTICES.md'),
@@ -33,6 +60,11 @@ export default defineConfig({
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
+  },
+  build: {
+    // The dev server exposes player-supplied data from public/. Production
+    // builds deliberately copy only the placeholders above.
+    copyPublicDir: false,
   },
   test: {
     include: ['tests/**/*.spec.ts'],

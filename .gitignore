@@ -22,8 +22,15 @@ pnpm-debug.log*
 *.sln
 *.sw?
 
-/public/data/**/*.dat
-/public/data/**/*.exe
-/public/data/**/*.bat
-/public/data/**/*.com
-/public/data/**/toolbar.png
+/public/data/**/*.[dD][aA][tT]
+/public/data/**/*.[eE][xX][eE]
+/public/data/**/*.[bB][aA][tT]
+/public/data/**/*.[cC][oO][mM]
+/public/data/**/*.[pP][nN][gG]
+/public/data/**/*.[bB][mM][pP]
+/public/data/**/*.[gG][iI][fF]
+/public/data/**/*.[jJ][pP][eE][gG]
+/public/data/**/*.[jJ][pP][gG]
+/public/data/**/*.[mM][pP]3
+/public/data/**/*.[oO][gG][gG]
+/public/data/**/*.[wW][aA][vV]

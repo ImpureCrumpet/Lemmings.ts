@@ -53,6 +53,12 @@ and privacy details.
 
 The original DOS game data is not distributed with this repository. Copy your legally obtained files into the corresponding `public/data/<version>/` directory before launching the game.
 
+Distribution boundaries, release checks, and the current private-repository
+policy are documented in [docu/DISTRIBUTION.md](docu/DISTRIBUTION.md). Dependency
+licenses are inventoried from the lockfile in
+[docu/DEPENDENCY-LICENSES.md](docu/DEPENDENCY-LICENSES.md), and tracked visual
+assets are recorded in [docu/ASSET-PROVENANCE.md](docu/ASSET-PROVENANCE.md).
+
 See [docu/MODERNIZATION.md](docu/MODERNIZATION.md) for the 2026 modernization audit and recommended next work. The toolbar can be exported, edited as a high-resolution PNG, and loaded without repacking the DOS data; see [docu/TOOLBAR-ARTWORK.md](docu/TOOLBAR-ARTWORK.md).
 
 
@@ -62,8 +68,15 @@ See [docu/MODERNIZATION.md](docu/MODERNIZATION.md) for the 2026 modernization au
 ![demo1](docu/examples/demo_01.png "Demo 01")
 ![demo2](docu/examples/demo_02.png "Demo 02")
 
-# Disclaimer
-Disclaimer: This Project does not claim rights to any Lemmings Version. To the best of our/my knowledge, these titles have been discontinued by their publishers. If you know otherwise, please contact us/me and we will remove them accordingly. Thank you for your attention. See the LICENSE for more information.
+# Licensing and game ownership
+
+Original project code is available under the MIT terms in `LICENSE`. The
+DOSBox-derived DBOPL audio emulator has separate GPL-2.0-or-later terms; see
+`THIRD_PARTY_NOTICES.md`. The project is not affiliated with or endorsed by the
+owners of Lemmings. Its code license grants no rights to the Lemmings name,
+characters, artwork, audio, levels, or original data files. There is no
+"abandonware" exception: players must provide data from a copy they are legally
+entitled to use.
 
 ## Standing on the shoulders of giants
 Special thanks goes to:
