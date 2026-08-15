@@ -1,0 +1,44 @@
+name: Dependency security report
+
+on:
+  schedule:
+    - cron: "23 16 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: dependency-security-report
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: Report npm advisories
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Generate advisory report
+        continue-on-error: true
+        run: npm audit --audit-level=high | tee npm-audit.txt
+
+      - name: Preserve advisory report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: npm-security-report
+          path: npm-audit.txt
+          if-no-files-found: warn
+          retention-days: 30

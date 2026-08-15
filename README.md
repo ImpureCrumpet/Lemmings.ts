@@ -35,6 +35,7 @@ The project uses Vue 3, TypeScript, and Vite. The framework-independent game sou
 * run `npm run dev` to start the development server
 * run `npm test` for unit tests
 * run `npm run lint` for static analysis
+* run `npm run check` to reproduce the complete required CI validation locally
 
 The regression suite uses only project-authored synthetic data. See [docu/TESTING.md](docu/TESTING.md) for its fixture conventions and how to add parser, gameplay, terrain, or replay cases.
 
@@ -58,6 +59,8 @@ policy are documented in [docu/DISTRIBUTION.md](docu/DISTRIBUTION.md). Dependenc
 licenses are inventoried from the lockfile in
 [docu/DEPENDENCY-LICENSES.md](docu/DEPENDENCY-LICENSES.md), and tracked visual
 assets are recorded in [docu/ASSET-PROVENANCE.md](docu/ASSET-PROVENANCE.md).
+Automated checks, dependency updates, branch protection, and private release
+steps are documented in [docu/CI-AND-RELEASES.md](docu/CI-AND-RELEASES.md).
 
 See [docu/MODERNIZATION.md](docu/MODERNIZATION.md) for the 2026 modernization audit and recommended next work. The toolbar can be exported, edited as a high-resolution PNG, and loaded without repacking the DOS data; see [docu/TOOLBAR-ARTWORK.md](docu/TOOLBAR-ARTWORK.md).
 

@@ -1,0 +1,107 @@
+name: Private release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+concurrency:
+  group: private-release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build audited private release
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      archive: ${{ steps.package.outputs.archive }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+
+    steps:
+      - name: Refuse release from a public repository
+        run: test '${{ github.event.repository.private }}' = 'true'
+
+      - name: Check out tagged source
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Require tag commit on master
+        run: git merge-base --is-ancestor HEAD origin/master
+
+      - name: Validate release version
+        id: version
+        run: node scripts/validate-release-version.mjs
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Run required validation
+        run: npm run check
+
+      - name: Package reproducible archive and checksum
+        id: package
+        shell: bash
+        run: |
+          set -euo pipefail
+          release_dir="lemmings-ts-${GITHUB_REF_NAME}"
+          archive="${release_dir}.tar.gz"
+          mkdir "${release_dir}"
+          cp -a dist/. "${release_dir}/"
+          source_date_epoch="$(git show -s --format=%ct HEAD)"
+          tar --sort=name --mtime="@${source_date_epoch}" --owner=0 --group=0 --numeric-owner -cf - "${release_dir}" | gzip -n > "${archive}"
+          sha256sum "${archive}" > "${archive}.sha256"
+          echo "archive=${archive}" >> "${GITHUB_OUTPUT}"
+
+      - name: Preserve workflow artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: private-release-${{ github.ref_name }}
+          path: |
+            ${{ steps.package.outputs.archive }}
+            ${{ steps.package.outputs.archive }}.sha256
+          if-no-files-found: error
+          retention-days: 90
+
+  publish:
+    name: Publish private GitHub release
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+
+    steps:
+      - name: Refuse release from a public repository
+        run: test '${{ github.event.repository.private }}' = 'true'
+
+      - name: Download audited release
+        uses: actions/download-artifact@v8
+        with:
+          name: private-release-${{ github.ref_name }}
+          path: release-artifacts
+
+      - name: Create private GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARCHIVE: release-artifacts/${{ needs.build.outputs.archive }}
+          PRERELEASE: ${{ needs.build.outputs.prerelease }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          release_flags=(--latest)
+          if [[ "${PRERELEASE}" == "true" ]]; then
+            release_flags=(--prerelease --latest=false)
+          fi
+          gh release create "${GITHUB_REF_NAME}" "${ARCHIVE}" "${ARCHIVE}.sha256" --verify-tag --generate-notes --title "Lemmings.ts ${GITHUB_REF_NAME}" "${release_flags[@]}"

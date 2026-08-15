@@ -1,0 +1,19 @@
+changelog:
+  exclude:
+    labels:
+      - skip-changelog
+  categories:
+    - title: User-visible changes
+      labels:
+        - user-visible
+        - enhancement
+        - bug
+    - title: Compatibility changes
+      labels:
+        - compatibility
+    - title: Licensing changes
+      labels:
+        - licensing
+    - title: Maintenance
+      labels:
+        - "*"

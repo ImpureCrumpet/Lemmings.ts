@@ -14,12 +14,14 @@
     "preview": "vite preview",
     "typecheck": "vue-tsc --noEmit",
     "test": "vitest run",
+    "test:ci": "vitest run --reporter=default --reporter=junit --outputFile.junit=test-results.xml",
     "test:watch": "vitest",
     "test:unit": "vitest run",
     "lint": "eslint .",
     "licenses:inventory": "node scripts/generate-license-inventory.mjs",
     "licenses:check": "node scripts/generate-license-inventory.mjs --check",
-    "audit:release": "npm run build && node scripts/audit-release.mjs dist"
+    "audit:release": "npm run build && node scripts/audit-release.mjs dist",
+    "check": "npm run lint && npm test && npm run licenses:check && npm run audit:release"
   },
   "dependencies": {
     "vue": "^3.5.41",
