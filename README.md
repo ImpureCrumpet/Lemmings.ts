@@ -40,6 +40,11 @@ The regression suite uses only project-authored synthetic data. See [docu/TESTIN
 
 Mouse, touch, pen, and keyboard controls are documented in [docu/CONTROLS.md](docu/CONTROLS.md). The game includes a semantic toolbar with readable skill names and counts in addition to the classic canvas panel.
 
+Preferences and completed-level progress are saved locally in the browser and
+can be exported or reset from the game screen. See
+[docu/PLAYER-DATA.md](docu/PLAYER-DATA.md) for the saved fields, recovery rules,
+and privacy details.
+
 ### How to debug using *Visual Studio Code*
 * install [Visual Studio Code](https://code.visualstudio.com/)
 * open project folder (root folder of the project) in *Visual Studio Code*

@@ -7,6 +7,7 @@ import type { GameResources } from '@/game/game-resources';
 import type { GameResult } from '@/game/game-result';
 import { GameStateTypeHelper, GameStateTypes } from '@/game/game-state-types';
 import { GameTypes, GameTypesHelper } from '@/game/game-types';
+import type { GameConfig } from '@/game/config/game-config';
 import type { AudioPlayer, AudioPlayerState } from '@/game/resources/sound/audio-player';
 import type { Level } from '@/game/resources/level';
 import { LogHandler } from '@/game/utilities/log-handler';
@@ -16,11 +17,25 @@ import {
   type GameControlAction,
   type ViewControlAction,
 } from '@/game/controls/game-control-actions';
-import { KeyboardControlManager } from '@/game/controls/keyboard-controls';
+import {
+  DEFAULT_KEYBOARD_BINDINGS,
+  isBindableKeyboardCode,
+  KeyboardControlManager,
+} from '@/game/controls/keyboard-controls';
+import {
+  createBrowserPlayerStorage,
+  createDefaultSettings,
+  createLevelId,
+  mergeKeyboardBindings,
+  type LevelLocation,
+  type PlayerSettings,
+} from '@/game/persistence/player-storage';
 
 const route = useRoute();
 const log = new LogHandler('GameView');
 const gameFactory = new GameFactory(`${import.meta.env.BASE_URL}data`);
+const playerStorage = createBrowserPlayerStorage();
+const initialSettings = playerStorage.loadSettings();
 
 const gameCanvas = ref<HTMLCanvasElement>();
 const levelIndex = ref(0);
@@ -29,7 +44,7 @@ const gameType = ref(GameTypes.UNKNOWN);
 const musicIndex = ref(0);
 const soundIndex = ref(0);
 const gameState = ref('');
-const gameSpeedFactor = ref(1);
+const gameSpeedFactor = ref(initialSettings.gameSpeed);
 const loadError = ref('');
 const audioStatus = ref('Audio starts after you press a Play button.');
 const controlAnnouncement = ref('Keyboard controls are available. Press 1 through 8 to select a skill.');
@@ -45,8 +60,15 @@ const focusedLemmingDescription = ref('No lemming selected');
 const nukeConfirmationPending = ref(false);
 const nuking = ref(false);
 const gameRunning = ref(false);
+const playerSettings = ref<PlayerSettings>(initialSettings);
+const playerProgress = ref(playerStorage.loadProgress());
+const currentLevelLocation = ref<LevelLocation>();
+const settingsMessage = ref('Preferences are saved only in this browser.');
+const bindingActionToCapture = ref<ViewControlAction>();
+const importInput = ref<HTMLInputElement>();
 
 const gameResources = shallowRef<GameResources>();
+const gameConfig = shallowRef<GameConfig>();
 const musicPlayer = shallowRef<AudioPlayer>();
 const soundPlayer = shallowRef<AudioPlayer>();
 const game = shallowRef<Game>();
@@ -59,6 +81,7 @@ let soundRequest = 0;
 let keyboardControls: KeyboardControlManager | undefined;
 let observedGame: Game | undefined;
 let nukeConfirmationTimeout: number | undefined;
+let appliedKeyboardBindings = '';
 
 const selectedSkillName = computed(() => (
   GAME_SKILL_CONTROLS.find((control) => control.skill === selectedSkill.value)?.name
@@ -80,6 +103,26 @@ const canApplySelectedSkill = computed(() => {
   return focusedLemmingDescription.value !== 'No lemming selected'
     && selectedIndex >= 0
     && skillCounts.value[selectedIndex] > 0;
+});
+
+const completedLevelCount = computed(
+  () => Object.keys(playerProgress.value.completedLevels).length,
+);
+
+const currentCompletion = computed(() => {
+  const levelId = currentLevelLocation.value?.levelId;
+  return levelId ? playerProgress.value.completedLevels[levelId] : undefined;
+});
+
+const bindingRows = computed(() => {
+  const actions = [...new Set(Object.values(DEFAULT_KEYBOARD_BINDINGS))];
+  return actions.map((action) => ({
+    action,
+    label: GAME_SKILL_CONTROLS.find((control) => control.action === action)?.name
+      ?? action.split('-').map((word) => word[0].toUpperCase() + word.slice(1)).join(' '),
+    code: Object.entries(playerSettings.value.keyboardBindings)
+      .find(([, boundAction]) => boundAction === action)?.[0] ?? 'Unassigned',
+  }));
 });
 
 type StartOutcome = 'started' | 'resumed' | 'failed';
@@ -197,15 +240,144 @@ function attachControlState(nextGame: Game): void {
   syncControlState();
 }
 
-function cycleGameSpeed(): void {
-  const speeds = [1, 2, 4];
-  const currentIndex = speeds.indexOf(gameSpeedFactor.value);
-  gameSpeedFactor.value = speeds[(currentIndex + 1) % speeds.length];
+function rebuildKeyboardControls(): void {
+  const serializedBindings = JSON.stringify(playerSettings.value.keyboardBindings);
+  if (keyboardControls && serializedBindings === appliedKeyboardBindings) {
+    return;
+  }
+  keyboardControls?.dispose();
+  keyboardControls = new KeyboardControlManager(
+    document,
+    performViewControlAction,
+    playerSettings.value.keyboardBindings,
+  );
+  appliedKeyboardBindings = serializedBindings;
+}
+
+function previewAudioSettings(): void {
+  if (musicPlayer.value) {
+    musicPlayer.value.volume = playerSettings.value.musicMuted
+      ? 0
+      : playerSettings.value.musicVolume;
+  }
+  if (soundPlayer.value) {
+    soundPlayer.value.volume = playerSettings.value.effectsMuted
+      ? 0
+      : playerSettings.value.effectsVolume;
+  }
+}
+
+function applyPlayerSettings(save = true): void {
+  if (save) {
+    playerSettings.value = playerStorage.saveSettings(playerSettings.value);
+  }
+  gameSpeedFactor.value = playerSettings.value.gameSpeed;
   if (game.value) {
     game.value.getGameTimer().speedFactor = gameSpeedFactor.value;
   }
+  previewAudioSettings();
+  rebuildKeyboardControls();
+  settingsMessage.value = save
+    ? 'Preferences saved in this browser.'
+    : 'Preferences loaded.';
+}
+
+function updateGameSpeed(): void {
+  gameSpeedFactor.value = playerSettings.value.gameSpeed;
+  applyPlayerSettings();
   controlAnnouncement.value = `Game speed ${gameSpeedFactor.value} times.`;
   syncControlState();
+}
+
+function startBindingCapture(action: ViewControlAction): void {
+  bindingActionToCapture.value = action;
+  settingsMessage.value = 'Press the new key, or Escape to cancel.';
+}
+
+function captureKeyboardBinding(event: KeyboardEvent): void {
+  const action = bindingActionToCapture.value;
+  if (!action) {
+    return;
+  }
+  if (event.code === 'Escape') {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    bindingActionToCapture.value = undefined;
+    settingsMessage.value = 'Key change cancelled.';
+    return;
+  }
+  if (!isBindableKeyboardCode(event.code)) {
+    settingsMessage.value = 'Choose a game key; browser navigation and modifier keys stay reserved.';
+    return;
+  }
+  if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || event.repeat) {
+    settingsMessage.value = 'Choose one key without a modifier.';
+    return;
+  }
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  playerSettings.value.keyboardBindings = mergeKeyboardBindings(
+    playerSettings.value.keyboardBindings,
+    event.code,
+    action,
+  );
+  bindingActionToCapture.value = undefined;
+  applyPlayerSettings();
+  settingsMessage.value = `${event.code} assigned.`;
+}
+
+function resetKeyboardBindings(): void {
+  playerSettings.value.keyboardBindings = { ...DEFAULT_KEYBOARD_BINDINGS };
+  applyPlayerSettings();
+  settingsMessage.value = 'Keyboard controls restored to their defaults.';
+}
+
+function resetPlayerData(): void {
+  if (!window.confirm('Reset all Lemmings.ts preferences and completed-level progress?')) {
+    return;
+  }
+  playerStorage.resetAll();
+  playerSettings.value = createDefaultSettings();
+  playerProgress.value = playerStorage.loadProgress();
+  bindingActionToCapture.value = undefined;
+  applyPlayerSettings(false);
+  settingsMessage.value = 'Preferences and progress reset.';
+}
+
+function exportPlayerData(): void {
+  const data = new Blob([playerStorage.exportData()], { type: 'application/json' });
+  const url = URL.createObjectURL(data);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'lemmings-player-data.json';
+  link.click();
+  URL.revokeObjectURL(url);
+  settingsMessage.value = 'Player data exported.';
+}
+
+async function importPlayerData(event: Event): Promise<void> {
+  const input = event.currentTarget as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = '';
+  if (!file) {
+    return;
+  }
+  const imported = playerStorage.importData(await file.text());
+  if (!imported) {
+    settingsMessage.value = 'That file is not valid Lemmings.ts player data.';
+    return;
+  }
+  playerSettings.value = playerStorage.loadSettings();
+  playerProgress.value = playerStorage.loadProgress();
+  applyPlayerSettings(false);
+  settingsMessage.value = 'Preferences and progress imported.';
+}
+
+function cycleGameSpeed(): void {
+  const speeds = [1, 2, 4];
+  const currentIndex = speeds.indexOf(gameSpeedFactor.value);
+  playerSettings.value.gameSpeed = speeds[(currentIndex + 1) % speeds.length] as 1 | 2 | 4;
+  updateGameSpeed();
 }
 
 function performViewControlAction(action: ViewControlAction): void {
@@ -265,6 +437,42 @@ function reportLoadError(error: unknown): void {
     : 'Unable to load the original game data.';
 }
 
+function getEditionId(): string {
+  return GameTypesHelper.toString(gameType.value).toLowerCase();
+}
+
+function getLevelLocation(config = gameConfig.value): LevelLocation | undefined {
+  const levelOrderId = config?.level.order[levelGroupIndex.value]?.[levelIndex.value];
+  if (levelOrderId === undefined) {
+    return undefined;
+  }
+  const editionId = getEditionId();
+  return {
+    editionId,
+    groupIndex: levelGroupIndex.value,
+    levelIndex: levelIndex.value,
+    levelId: createLevelId(editionId, levelOrderId),
+  };
+}
+
+function restoreSavedLocation(config: GameConfig): void {
+  const saved = playerProgress.value.lastLocation;
+  if (!saved || saved.editionId !== getEditionId()) {
+    levelGroupIndex.value = 0;
+    levelIndex.value = 0;
+    return;
+  }
+  const levelOrderId = config.level.order[saved.groupIndex]?.[saved.levelIndex];
+  if (levelOrderId === undefined
+      || createLevelId(saved.editionId, levelOrderId) !== saved.levelId) {
+    levelGroupIndex.value = 0;
+    levelIndex.value = 0;
+    return;
+  }
+  levelGroupIndex.value = saved.groupIndex;
+  levelIndex.value = saved.levelIndex;
+}
+
 async function start(replayString?: string): Promise<StartOutcome> {
   if (game.value) {
     game.value.getGameTimer().resume();
@@ -319,6 +527,14 @@ function onGameEnd(result?: GameResult): void {
 
   gameState.value = GameStateTypeHelper.toString(result.state);
   syncControlState();
+  if (result.state === GameStateTypes.SUCCEEDED && currentLevelLocation.value) {
+    playerProgress.value = playerStorage.recordCompletion(currentLevelLocation.value, {
+      bestSurvivors: result.survivors,
+      bestSurvivorPercentage: result.survivorPercentage,
+      bestDurationTicks: result.duration,
+    });
+    controlAnnouncement.value = `Level completed with ${result.survivors} rescued.`;
+  }
   stage.value?.startFadeOut();
 
   gameEndTimeout = window.setTimeout(() => {
@@ -346,6 +562,7 @@ async function playMusic(moveInterval = 0): Promise<void> {
     return;
   }
   musicPlayer.value = player;
+  player.volume = playerSettings.value.musicMuted ? 0 : playerSettings.value.musicVolume;
   watchAudioState('Music', player);
   await player.play();
 }
@@ -370,6 +587,7 @@ async function playSound(moveInterval = 0): Promise<void> {
     return;
   }
   soundPlayer.value = player;
+  player.volume = playerSettings.value.effectsMuted ? 0 : playerSettings.value.effectsVolume;
   watchAudioState('Sound', player);
   await player.play();
 }
@@ -452,16 +670,21 @@ async function moveToLevel(moveInterval = 0): Promise<void> {
 
 async function selectGameType(selectedGameType: GameTypes): Promise<void> {
   loadError.value = '';
-  const resources = await gameFactory.getGameResources(selectedGameType);
-  if (!resources) {
-    log.log('Unable to get game resources');
-    return;
-  }
-
-  gameResources.value = resources;
-  levelGroupIndex.value = 0;
-
   try {
+    const config = await gameFactory.getConfig(selectedGameType);
+    if (!config) {
+      log.log('Unable to get game config');
+      return;
+    }
+    gameConfig.value = config;
+    restoreSavedLocation(config);
+
+    const resources = await gameFactory.getGameResources(selectedGameType);
+    if (!resources) {
+      log.log('Unable to get game resources');
+      return;
+    }
+    gameResources.value = resources;
     await loadLevel();
   } catch (error) {
     reportLoadError(error);
@@ -489,6 +712,11 @@ async function loadLevel(): Promise<void> {
   }
 
   level.value = nextLevel;
+  const location = getLevelLocation();
+  if (location) {
+    currentLevelLocation.value = location;
+    playerProgress.value = playerStorage.setLastLocation(location);
+  }
   if (!stage.value) {
     return;
   }
@@ -503,6 +731,7 @@ async function loadLevel(): Promise<void> {
 
 onMounted(() => {
   document.addEventListener('visibilitychange', syncGameVisibility);
+  document.addEventListener('keydown', captureKeyboardBinding, true);
 
   if (!gameCanvas.value) {
     return;
@@ -512,7 +741,7 @@ onMounted(() => {
   // toolbar region, making the skill icons easier to read without changing
   // the game's logical resolution or input grid.
   stage.value = new Stage(gameCanvas.value, 2, 2.5);
-  keyboardControls = new KeyboardControlManager(document, performViewControlAction);
+  rebuildKeyboardControls();
   const routeGameType = Array.isArray(route.params.gameType)
     ? route.params.gameType[0]
     : route.params.gameType;
@@ -529,6 +758,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   document.removeEventListener('visibilitychange', syncGameVisibility);
+  document.removeEventListener('keydown', captureKeyboardBinding, true);
   keyboardControls?.dispose();
   keyboardControls = undefined;
   detachControlState();
@@ -559,6 +789,7 @@ onBeforeUnmount(() => {
       height="480"
       width="800"
       class="gameCanvas"
+      :class="{ smoothDisplay: playerSettings.displaySmoothing }"
       tabindex="0"
       aria-label="Lemmings game area. Drag to move the map, or tap a lemming to assign the selected skill. Keyboard controls are below."
     >
@@ -570,11 +801,23 @@ onBeforeUnmount(() => {
       class="levelName"
     >
       {{ level.name }}
+      <span
+        v-if="currentCompletion"
+        class="completionBadge"
+      >
+        Completed · best {{ currentCompletion.bestSurvivors }} rescued
+        ({{ currentCompletion.bestSurvivorPercentage }}%)
+      </span>
     </div>
+
+    <p class="progressSummary">
+      {{ completedLevelCount }} {{ completedLevelCount === 1 ? 'level' : 'levels' }} completed on this browser
+    </p>
 
     <section
       v-if="game"
       class="accessibleToolbar"
+      :class="{ highContrast: playerSettings.toolbarStyle === 'high-contrast' }"
       aria-labelledby="game-controls-heading"
     >
       <h2 id="game-controls-heading">
@@ -717,6 +960,169 @@ onBeforeUnmount(() => {
       </p>
     </section>
 
+    <details class="settingsPanel">
+      <summary>Preferences and player data</summary>
+
+      <div class="settingsGrid">
+        <span>Music volume</span>
+        <div class="rangeSetting">
+          <input
+            id="music-volume"
+            v-model.number="playerSettings.musicVolume"
+            aria-label="Music volume"
+            type="range"
+            min="0"
+            max="1"
+            step="0.05"
+            @input="previewAudioSettings"
+            @change="applyPlayerSettings()"
+          >
+          <output
+            for="music-volume"
+            aria-label="Music volume percentage"
+          >{{ Math.round(playerSettings.musicVolume * 100) }}%</output>
+          <input
+            v-model="playerSettings.musicMuted"
+            type="checkbox"
+            aria-label="Mute music"
+            @change="applyPlayerSettings()"
+          >
+          <span>Mute</span>
+        </div>
+
+        <span>Effects volume</span>
+        <div class="rangeSetting">
+          <input
+            id="effects-volume"
+            v-model.number="playerSettings.effectsVolume"
+            aria-label="Effects volume"
+            type="range"
+            min="0"
+            max="1"
+            step="0.05"
+            @input="previewAudioSettings"
+            @change="applyPlayerSettings()"
+          >
+          <output
+            for="effects-volume"
+            aria-label="Effects volume percentage"
+          >{{ Math.round(playerSettings.effectsVolume * 100) }}%</output>
+          <input
+            v-model="playerSettings.effectsMuted"
+            type="checkbox"
+            aria-label="Mute effects"
+            @change="applyPlayerSettings()"
+          >
+          <span>Mute</span>
+        </div>
+
+        <span>Game speed</span>
+        <select
+          id="default-speed"
+          v-model.number="playerSettings.gameSpeed"
+          aria-label="Game speed"
+          @change="updateGameSpeed"
+        >
+          <option :value="1">
+            1×
+          </option>
+          <option :value="2">
+            2×
+          </option>
+          <option :value="4">
+            4×
+          </option>
+        </select>
+
+        <span>Toolbar style</span>
+        <select
+          id="toolbar-style"
+          v-model="playerSettings.toolbarStyle"
+          aria-label="Toolbar style"
+          @change="applyPlayerSettings()"
+        >
+          <option value="classic">
+            Classic dark
+          </option>
+          <option value="high-contrast">
+            High contrast
+          </option>
+        </select>
+
+        <span>Map rendering</span>
+        <span>
+          <input
+            v-model="playerSettings.displaySmoothing"
+            type="checkbox"
+            aria-label="Smooth scaled pixels"
+            @change="applyPlayerSettings()"
+          >
+          Smooth scaled pixels
+        </span>
+      </div>
+
+      <details class="keyboardSettings">
+        <summary>Keyboard controls</summary>
+        <div class="bindingGrid">
+          <template
+            v-for="binding in bindingRows"
+            :key="binding.action"
+          >
+            <span>{{ binding.label }}</span>
+            <button
+              type="button"
+              :class="{ listening: bindingActionToCapture === binding.action }"
+              @click="startBindingCapture(binding.action)"
+            >
+              {{ bindingActionToCapture === binding.action ? 'Press a key…' : binding.code }}
+            </button>
+          </template>
+        </div>
+        <button
+          type="button"
+          @click="resetKeyboardBindings"
+        >
+          Restore default keys
+        </button>
+      </details>
+
+      <div class="dataControls">
+        <button
+          type="button"
+          @click="exportPlayerData"
+        >
+          Export player data
+        </button>
+        <button
+          type="button"
+          @click="importInput?.click()"
+        >
+          Import player data
+        </button>
+        <input
+          ref="importInput"
+          class="visuallyHidden"
+          type="file"
+          aria-label="Import player data file"
+          accept="application/json,.json"
+          @change="importPlayerData"
+        >
+        <button
+          type="button"
+          class="resetButton"
+          @click="resetPlayerData"
+        >
+          Reset preferences and progress
+        </button>
+      </div>
+      <p
+        role="status"
+        aria-live="polite"
+      >
+        {{ settingsMessage }} No personal information or analytics are stored.
+      </p>
+    </details>
+
     <div
       v-if="level"
       class="controls"
@@ -836,6 +1242,10 @@ onBeforeUnmount(() => {
     touch-action: none;
   }
 
+  .gameCanvas.smoothDisplay {
+    image-rendering: auto;
+  }
+
   .gameCanvas:focus-visible,
   button:focus-visible {
     outline: 3px solid #54e7ff;
@@ -874,6 +1284,19 @@ onBeforeUnmount(() => {
     text-align: center;
   }
 
+  .completionBadge {
+    display: block;
+    margin-top: 0.35rem;
+    color: #8dff85;
+    font-size: 0.9rem;
+  }
+
+  .progressSummary {
+    margin: 0.5rem;
+    color: #ccc;
+    text-align: center;
+  }
+
   .accessibleToolbar {
     max-width: 800px;
     margin: 0.75rem auto;
@@ -887,6 +1310,16 @@ onBeforeUnmount(() => {
     margin: 0 0 0.5rem;
     font-size: 1.1rem;
     text-align: center;
+  }
+
+  .accessibleToolbar.highContrast {
+    border-color: #54e7ff;
+    background: #001d2b;
+  }
+
+  .accessibleToolbar.highContrast button {
+    border-color: #ddd;
+    background: #000;
   }
 
   .gameStatus,
@@ -979,6 +1412,70 @@ onBeforeUnmount(() => {
     text-align: center;
   }
 
+  .settingsPanel {
+    max-width: 800px;
+    padding: 0.75rem;
+    margin: 0.75rem auto;
+    box-sizing: border-box;
+    border: 1px solid #555;
+    background: #101010;
+    text-align: left;
+  }
+
+  .settingsPanel > summary,
+  .keyboardSettings > summary {
+    padding: 0.35rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .settingsGrid,
+  .bindingGrid {
+    display: grid;
+    grid-template-columns: minmax(9rem, 1fr) minmax(12rem, 2fr);
+    gap: 0.65rem 1rem;
+    align-items: center;
+    margin: 0.75rem 0;
+  }
+
+  .settingsGrid select {
+    min-height: 44px;
+    padding: 0.4rem;
+    border: 2px solid #888;
+    border-radius: 0.3rem;
+    background: #202020;
+    color: #fff;
+    font: inherit;
+  }
+
+  .rangeSetting,
+  .dataControls {
+    display: flex;
+    gap: 0.65rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .rangeSetting input[type='range'] {
+    flex: 1 1 10rem;
+  }
+
+  .keyboardSettings {
+    margin: 1rem 0;
+  }
+
+  .bindingGrid button {
+    justify-self: start;
+  }
+
+  .bindingGrid button.listening {
+    border-color: #fff200;
+  }
+
+  .dataControls .resetButton {
+    border-color: #d34d4d;
+  }
+
   .controls {
     display: flex;
     gap: 0.5rem;
@@ -994,6 +1491,15 @@ onBeforeUnmount(() => {
 
     .accessibleToolbar {
       margin-inline: 0.35rem;
+    }
+
+    .settingsPanel {
+      margin-inline: 0.35rem;
+    }
+
+    .settingsGrid,
+    .bindingGrid {
+      grid-template-columns: 1fr;
     }
   }
 

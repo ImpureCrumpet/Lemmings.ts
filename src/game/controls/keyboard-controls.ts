@@ -29,6 +29,38 @@ export const DEFAULT_KEYBOARD_BINDINGS: KeyboardBindings = Object.freeze({
     Escape: 'cancel-nuke',
 });
 
+const NON_BINDABLE_KEY_CODES = new Set([
+    'AltLeft',
+    'AltRight',
+    'CapsLock',
+    'ContextMenu',
+    'ControlLeft',
+    'ControlRight',
+    'MetaLeft',
+    'MetaRight',
+    'NumLock',
+    'Eject',
+    'Fn',
+    'FnLock',
+    'Power',
+    'PrintScreen',
+    'ScrollLock',
+    'ShiftLeft',
+    'ShiftRight',
+    'Sleep',
+    'Tab',
+    'WakeUp',
+]);
+
+const NON_BINDABLE_KEY_PREFIXES = ['AudioVolume', 'Browser', 'Launch', 'Media'];
+
+/** Keep browser navigation and modifier/lock keys available to the page and OS. */
+export function isBindableKeyboardCode(code: string): boolean {
+    return code.length > 0
+        && !NON_BINDABLE_KEY_CODES.has(code)
+        && !NON_BINDABLE_KEY_PREFIXES.some((prefix) => code.startsWith(prefix));
+}
+
 export function isEditableKeyboardTarget(target: EventTarget | null): boolean {
     if (typeof HTMLElement === 'undefined' || !(target instanceof HTMLElement)) {
         return false;
@@ -57,12 +89,13 @@ export function getKeyboardAction(
     event: Pick<KeyboardEvent, 'altKey' | 'code' | 'ctrlKey' | 'metaKey' | 'shiftKey'>,
     bindings: KeyboardBindings = DEFAULT_KEYBOARD_BINDINGS,
 ): ViewControlAction | undefined {
-    if (event.altKey || event.ctrlKey || event.metaKey) {
+    if (event.altKey || event.ctrlKey || event.metaKey || !isBindableKeyboardCode(event.code)) {
         return undefined;
     }
 
-    // Shift is accepted for Equal so both = and + increase the release rate.
-    if (event.shiftKey && event.code !== 'Equal') {
+    // Shift is accepted for whichever physical key increases the release rate,
+    // so a remapped + shortcut keeps the same behaviour.
+    if (event.shiftKey && bindings[event.code] !== 'release-rate-increase') {
         return undefined;
     }
 

@@ -40,10 +40,9 @@ content. Ctrl, Command, and Alt combinations are reserved for the browser and
 operating system. Shift is ignored except for `+`, which commonly shares the
 equals key.
 
-The exported `DEFAULT_KEYBOARD_BINDINGS` record in
-`src/game/controls/keyboard-controls.ts` is deliberately separate from the
-action implementation. Workstream 05 can persist a replacement binding record
-without changing gameplay or replay code.
+The Preferences and player data panel can remap each shortcut by listening for
+a new physical key. Bindings are saved locally and can be restored to their
+defaults without changing gameplay or replay behaviour.
 
 ## Accessible toolbar
 

@@ -4,7 +4,9 @@ import {
   getSkillForControlAction,
 } from '@/game/controls/game-control-actions';
 import {
+  DEFAULT_KEYBOARD_BINDINGS,
   getKeyboardAction,
+  isBindableKeyboardCode,
   KeyboardControlManager,
   shouldIgnoreKeyboardEvent,
 } from '@/game/controls/keyboard-controls';
@@ -149,6 +151,17 @@ describe('named and keyboard controls', () => {
     expect(getKeyboardAction({ ...noModifiers, code: 'Equal', shiftKey: true })).toBe('release-rate-increase');
     expect(getKeyboardAction({ ...noModifiers, code: 'KeyP', ctrlKey: true })).toBeUndefined();
     expect(getKeyboardAction({ ...noModifiers, code: 'KeyP', shiftKey: true })).toBeUndefined();
+    expect(isBindableKeyboardCode('Tab')).toBe(false);
+    expect(isBindableKeyboardCode('BrowserBack')).toBe(false);
+    expect(isBindableKeyboardCode('AudioVolumeUp')).toBe(false);
+    expect(getKeyboardAction(
+      { ...noModifiers, code: 'Tab' },
+      { ...DEFAULT_KEYBOARD_BINDINGS, Tab: 'toggle-pause' },
+    )).toBeUndefined();
+    expect(getKeyboardAction(
+      { ...noModifiers, code: 'KeyQ', shiftKey: true },
+      { ...DEFAULT_KEYBOARD_BINDINGS, KeyQ: 'release-rate-increase' },
+    )).toBe('release-rate-increase');
   });
 
   it('skips repeat, editable, and native activation events and detaches cleanly', () => {

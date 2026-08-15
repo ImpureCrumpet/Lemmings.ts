@@ -3,10 +3,12 @@ import { onMounted, ref, shallowRef } from 'vue';
 import { GameFactory } from '@/game/game-factory';
 import { GameTypes, GameTypesHelper } from '@/game/game-types';
 import type { GameResources } from '@/game/game-resources';
+import { createBrowserPlayerStorage } from '@/game/persistence/player-storage';
 import { LogHandler } from '@/game/utilities/log-handler';
 
 const log = new LogHandler('MainView');
 const gameFactory = new GameFactory(`${import.meta.env.BASE_URL}data`);
+const playerStorage = createBrowserPlayerStorage();
 
 const levelIndex = ref(0);
 const levelGroupIndex = ref(0);
@@ -46,22 +48,21 @@ async function showStartView(): Promise<void> {
 
 async function selectGameType(moveValue = 0): Promise<void> {
   loadError.value = '';
+  const playableEditionCount = GameTypesHelper.count() - 1;
   gameType.value = (
-    GameTypesHelper.count() + gameType.value + moveValue
-  ) % GameTypesHelper.count();
+    (gameType.value - 1 + moveValue + playableEditionCount) % playableEditionCount
+  ) + 1;
 
   log.log(`game type: ${gameType.value}`);
-
-  const resources = await gameFactory.getGameResources(gameType.value);
-  if (!resources) {
-    log.log('Unable to get game resources');
-    return;
-  }
-
-  gameResources.value = resources;
-  levelGroupIndex.value = 0;
-
   try {
+    const resources = await gameFactory.getGameResources(gameType.value);
+    if (!resources) {
+      log.log('Unable to get game resources');
+      return;
+    }
+    gameResources.value = resources;
+    levelGroupIndex.value = 0;
+
     await showStartView();
   } catch (error) {
     loadError.value = error instanceof Error
@@ -71,6 +72,13 @@ async function selectGameType(moveValue = 0): Promise<void> {
 }
 
 onMounted(() => {
+  const savedEdition = playerStorage.loadProgress().lastLocation?.editionId;
+  if (savedEdition) {
+    const savedGameType = GameTypesHelper.fromString(savedEdition);
+    if (GameTypesHelper.isValid(savedGameType)) {
+      gameType.value = savedGameType;
+    }
+  }
   log.log(
     `selected level: ${GameTypesHelper.toString(gameType.value)} : ${levelIndex.value} / ${levelGroupIndex.value}`,
   );
