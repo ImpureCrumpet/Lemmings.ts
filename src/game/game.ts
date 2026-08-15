@@ -1,6 +1,11 @@
 import { GameResources } from './game-resources';
 import { GameResult } from './game-result';
 import { GameStateTypes } from './game-state-types';
+import { CommandNuke } from './game-play/commands/command-nuke';
+import { CommandLemmingsAction } from './game-play/commands/command-lemming-action';
+import { CommandReleaseRateDecrease } from './game-play/commands/command-release-rate-decrease';
+import { CommandReleaseRateIncrease } from './game-play/commands/command-release-rate-increase';
+import { CommandSelectSkill } from './game-play/commands/command-select-skill';
 import type { ICommand } from './game-play/commands/command';
 import { CommandManager } from './game-play/commands/command-manager';
 import { GameSkills } from './game-play/game-skills';
@@ -19,6 +24,14 @@ import { LogHandler } from './utilities/log-handler';
 import { DisplayImage } from './view/display-image';
 import { GameDisplay } from './view/game-display';
 import { GameGui } from './view/game-gui';
+import { SkillTypes } from './game-play/skill-types';
+import {
+    getSkillForControlAction,
+    type GameControlAction,
+} from './controls/game-control-actions';
+
+const RELEASE_RATE_STEP = 3;
+const NUKE_CONFIRMATION_MS = 4_000;
 
 /** provides an game object to control the game */
 export class Game {
@@ -42,8 +55,11 @@ export class Game {
 
     private skills: GameSkills;
     private showDebug = false;
+    private focusedLemmingId: number | undefined;
+    private nukeConfirmationDeadline = 0;
 
     public onGameEnd = new EventHandler<GameResult>();
+    public onControlAction = new EventHandler<GameControlAction>();
 
     private finalGameState: GameStateTypes = GameStateTypes.UNKNOWN;
 
@@ -160,7 +176,10 @@ export class Game {
             this.gameTimer.stop();
         }
 
+        this.gameDisplay?.dispose();
+        this.gameGui?.dispose();
         this.onGameEnd.dispose();
+        this.onControlAction.dispose();
     }
 
 
@@ -194,12 +213,116 @@ export class Game {
         return this.commandManager;
     }
 
-    public queueCommand(newCommand: ICommand) {
+    public queueCommand(newCommand: ICommand): boolean {
         if (!this.commandManager) {
-            return;
+            return false;
         }
 
-        this.commandManager.queueCommand(newCommand);
+        return this.commandManager.queueCommand(newCommand);
+    }
+
+    /** Execute a named control action through the same replay-aware command path. */
+    public performControlAction(action: GameControlAction): boolean {
+        let accepted = false;
+        const skill = getSkillForControlAction(action);
+
+        if (skill !== SkillTypes.UNKNOWN) {
+            accepted = this.queueCommand(new CommandSelectSkill(skill));
+        } else {
+            switch (action) {
+                case 'release-rate-decrease':
+                    accepted = this.queueCommand(new CommandReleaseRateDecrease(RELEASE_RATE_STEP));
+                    break;
+                case 'release-rate-increase':
+                    accepted = this.queueCommand(new CommandReleaseRateIncrease(RELEASE_RATE_STEP));
+                    break;
+                case 'toggle-pause':
+                    this.gameTimer.toggle();
+                    accepted = true;
+                    break;
+                case 'focus-previous-lemming':
+                    accepted = this.moveFocusedLemming(-1);
+                    break;
+                case 'focus-next-lemming':
+                    accepted = this.moveFocusedLemming(1);
+                    break;
+                case 'apply-selected-skill':
+                    return this.focusedLemmingId !== undefined
+                        && this.applySelectedSkillToLemming(this.focusedLemmingId);
+                case 'nuke':
+                    if (this.lemmingManager.isNuking()) {
+                        break;
+                    }
+                    if (!this.isNukeConfirmationPending()) {
+                        this.nukeConfirmationDeadline = Date.now() + NUKE_CONFIRMATION_MS;
+                        accepted = true;
+                    } else {
+                        this.nukeConfirmationDeadline = 0;
+                        accepted = this.queueCommand(new CommandNuke());
+                    }
+                    break;
+                case 'cancel-nuke':
+                    accepted = this.cancelNukeConfirmation();
+                    break;
+            }
+        }
+
+        if (accepted) {
+            this.onControlAction.trigger(action);
+        }
+        return accepted;
+    }
+
+    /** Apply the current skill to a lemming selected by canvas or keyboard. */
+    public applySelectedSkillToLemming(lemmingId: number): boolean {
+        const accepted = this.queueCommand(new CommandLemmingsAction(lemmingId));
+        if (accepted) {
+            this.focusedLemmingId = lemmingId;
+            this.onControlAction.trigger('apply-selected-skill');
+        }
+        return accepted;
+    }
+
+    public isNukeConfirmationPending(): boolean {
+        if (this.nukeConfirmationDeadline <= Date.now()) {
+            this.nukeConfirmationDeadline = 0;
+        }
+        return this.nukeConfirmationDeadline > 0;
+    }
+
+    public cancelNukeConfirmation(): boolean {
+        if (!this.isNukeConfirmationPending()) {
+            return false;
+        }
+        this.nukeConfirmationDeadline = 0;
+        return true;
+    }
+
+    public getFocusedLemmingId(): number | undefined {
+        const lemming = this.focusedLemmingId === undefined
+            ? undefined
+            : this.lemmingManager.getLemming(this.focusedLemmingId);
+        if (!lemming || lemming.isRemoved() || lemming.isDisabled()) {
+            this.focusedLemmingId = undefined;
+        }
+        return this.focusedLemmingId;
+    }
+
+    private moveFocusedLemming(direction: -1 | 1): boolean {
+        const available = this.lemmingManager.getLemmings()
+            .filter((lemming) => !lemming.isRemoved() && !lemming.isDisabled());
+        if (available.length === 0) {
+            this.focusedLemmingId = undefined;
+            return false;
+        }
+
+        const currentIndex = available.findIndex((lemming) => lemming.id === this.focusedLemmingId);
+        const nextIndex = currentIndex < 0
+            ? (direction > 0 ? 0 : available.length - 1)
+            : (currentIndex + direction + available.length) % available.length;
+        this.focusedLemmingId = available[nextIndex].id;
+        this.render();
+        return true;
     }
 
     /** enables / disables the display of debug information */

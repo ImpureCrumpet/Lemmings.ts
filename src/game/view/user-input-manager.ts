@@ -1,175 +1,180 @@
 import { EventHandler } from '../utilities/event-handler';
 import { Position2D } from '../utilities/position2d';
 
-export class MouseMoveEventArguments extends Position2D {
-    /** delta the mouse move Y */
+const DRAG_THRESHOLD_PX = 5;
+
+export class PointerMoveEventArguments extends Position2D {
     public deltaX = 0;
-    /** delta the mouse move Y */
     public deltaY = 0;
-
     public button = false;
+    public pointerType = 'mouse';
+    public pointerDownX = 0;
+    public pointerDownY = 0;
 
-    /** position the user starts pressed the mouse */
-    public mouseDownX = 0;
-    /** position the user starts pressed the mouse */
-    public mouseDownY = 0;
-
-    constructor(x = 0, y = 0, deltaX = 0, deltaY = 0, button = false) {
+    public constructor(
+        x = 0,
+        y = 0,
+        deltaX = 0,
+        deltaY = 0,
+        button = false,
+        pointerType = 'mouse',
+    ) {
         super(x, y);
         this.deltaX = deltaX;
         this.deltaY = deltaY;
         this.button = button;
+        this.pointerType = pointerType;
     }
 }
 
 export class ZoomEventArguments extends Position2D {
-    public deltaZoom: number;
-
-    constructor(x = 0, y = 0, deltaZoom = 0) {
+    public constructor(x = 0, y = 0, public deltaZoom = 0) {
         super(x, y);
-        this.deltaZoom = deltaZoom;
     }
 }
 
-
-/** handel the user events on the stage */
+/** Handles mouse, touch, and pen through one captured Pointer Events path. */
 export class UserInputManager {
-
     private readonly eventController = new AbortController();
+    private activePointerId: number | undefined;
+    private pointerDownX = 0;
+    private pointerDownY = 0;
+    private pointerDownClientX = 0;
+    private pointerDownClientY = 0;
+    private lastPointerX = 0;
+    private lastPointerY = 0;
+    private dragged = false;
 
-    private mouseDownX = 0;
-    private mouseDownY = 0;
-
-    private lastMouseX = 0;
-    private lastMouseY = 0;
-
-    private mouseButton = false;
-
-    public onMouseMove = new EventHandler<MouseMoveEventArguments>();
+    public onMouseMove = new EventHandler<PointerMoveEventArguments>();
     public onMouseUp = new EventHandler<Position2D>();
     public onMouseDown = new EventHandler<Position2D>();
+    public onTap = new EventHandler<Position2D>();
+    public onPointerCancel = new EventHandler<void>();
     public onDoubleClick = new EventHandler<Position2D>();
     public onZoom = new EventHandler<ZoomEventArguments>();
 
-    constructor(listenElement: HTMLElement) {
-
+    public constructor(private readonly listenElement: HTMLElement) {
         const eventOptions = { signal: this.eventController.signal };
-        const touchEventOptions = { ...eventOptions, passive: false };
+        const activeEventOptions = { ...eventOptions, passive: false };
 
-        listenElement.addEventListener('mousemove', (e: MouseEvent) => {
-            const relativePos = this.getRelativePosition(listenElement, e.clientX, e.clientY);
-            this.handelMouseMove(relativePos);
-
-            e.stopPropagation();
-            e.preventDefault();
-
-            return false;
-        }, eventOptions);
-
-
-        listenElement.addEventListener('touchmove', (e: TouchEvent) => {
-            const touch = e.touches[0];
-            if (!touch) {
+        listenElement.addEventListener('pointerdown', (event: PointerEvent) => {
+            if (!event.isPrimary || this.activePointerId !== undefined || event.button !== 0) {
                 return;
             }
-            const relativePos = this.getRelativePosition(listenElement, touch.clientX, touch.clientY);
-            this.handelMouseMove(relativePos);
 
-            e.stopPropagation();
-            e.preventDefault();
+            const position = this.getRelativePosition(event.clientX, event.clientY);
+            this.activePointerId = event.pointerId;
+            this.pointerDownX = position.x;
+            this.pointerDownY = position.y;
+            this.pointerDownClientX = event.clientX;
+            this.pointerDownClientY = event.clientY;
+            this.lastPointerX = position.x;
+            this.lastPointerY = position.y;
+            this.dragged = false;
 
-            return false;
-        }, touchEventOptions);
+            try {
+                listenElement.setPointerCapture(event.pointerId);
+            } catch {
+                // Capture can fail if the pointer ended before this handler ran.
+            }
 
-        listenElement.addEventListener('touchstart', (e: TouchEvent) => {
-            const touch = e.touches[0];
-            if (!touch) {
+            listenElement.focus({ preventScroll: true });
+            this.onMouseDown.trigger(position);
+            event.preventDefault();
+        }, activeEventOptions);
+
+        listenElement.addEventListener('pointermove', (event: PointerEvent) => {
+            if (!event.isPrimary) {
                 return;
             }
-            const relativePos = this.getRelativePosition(listenElement, touch.clientX, touch.clientY);
-            this.handelMouseDown(relativePos);
 
-            e.stopPropagation();
-            e.preventDefault();
-
-            return false;
-        }, touchEventOptions);
-
-        listenElement.addEventListener('mousedown', (e: MouseEvent) => {
-            const relativePos = this.getRelativePosition(listenElement, e.clientX, e.clientY);
-            this.handelMouseDown(relativePos);
-
-            e.stopPropagation();
-            e.preventDefault();
-
-            return false;
-        }, eventOptions);
-
-        listenElement.addEventListener('mouseup', (e: MouseEvent) => {
-            const relativePos = this.getRelativePosition(listenElement, e.clientX, e.clientY);
-            this.handelMouseUp(relativePos);
-
-            e.stopPropagation();
-            e.preventDefault();
-
-            return false;
-        }, eventOptions);
-
-        listenElement.addEventListener('mouseleave', () => {
-            this.handelMouseClear();
-        }, eventOptions);
-
-        listenElement.addEventListener('touchend', (e: TouchEvent) => {
-            const touch = e.changedTouches[0];
-            if (!touch) {
-                this.handelMouseClear();
+            const position = this.getRelativePosition(event.clientX, event.clientY);
+            if (this.activePointerId === undefined) {
+                this.onMouseMove.trigger(new PointerMoveEventArguments(
+                    position.x,
+                    position.y,
+                    0,
+                    0,
+                    false,
+                    event.pointerType,
+                ));
                 return;
             }
-            const relativePos = this.getRelativePosition(listenElement, touch.clientX, touch.clientY);
-            this.handelMouseUp(relativePos);
+            if (event.pointerId !== this.activePointerId) {
+                return;
+            }
 
-            return false;
-        }, touchEventOptions);
+            const movedX = event.clientX - this.pointerDownClientX;
+            const movedY = event.clientY - this.pointerDownClientY;
+            if ((movedX * movedX) + (movedY * movedY) >= DRAG_THRESHOLD_PX * DRAG_THRESHOLD_PX) {
+                this.dragged = true;
+            }
 
-        listenElement.addEventListener('touchcancel', () => {
-            this.handelMouseClear();
-            return false;
-        }, eventOptions);
+            const move = new PointerMoveEventArguments(
+                position.x,
+                position.y,
+                this.lastPointerX - position.x,
+                this.lastPointerY - position.y,
+                this.dragged,
+                event.pointerType,
+            );
+            move.pointerDownX = this.pointerDownX;
+            move.pointerDownY = this.pointerDownY;
+            this.lastPointerX = position.x;
+            this.lastPointerY = position.y;
+            this.onMouseMove.trigger(move);
+            event.preventDefault();
+        }, activeEventOptions);
 
+        listenElement.addEventListener('pointerup', (event: PointerEvent) => {
+            if (event.pointerId !== this.activePointerId) {
+                return;
+            }
 
-        listenElement.addEventListener('dblclick', (e: MouseEvent) => {
-            const relativePos = this.getRelativePosition(listenElement, e.clientX, e.clientY);
-            this.handleMouseDoubleClick(relativePos);
+            const position = this.getRelativePosition(event.clientX, event.clientY);
+            const wasDragged = this.dragged;
+            this.clearActivePointer(event.pointerId);
+            this.onMouseUp.trigger(position);
+            if (!wasDragged) {
+                this.onTap.trigger(position);
+            }
+            event.preventDefault();
+        }, activeEventOptions);
 
-            e.stopPropagation();
-            e.preventDefault();
+        const cancelPointer = (event: PointerEvent) => {
+            if (event.pointerId !== this.activePointerId) {
+                return;
+            }
+            this.clearActivePointer(event.pointerId);
+            this.onPointerCancel.trigger();
+        };
+        listenElement.addEventListener('pointercancel', cancelPointer, eventOptions);
+        listenElement.addEventListener('lostpointercapture', cancelPointer, eventOptions);
 
-            return false;
-        }, eventOptions);
+        listenElement.addEventListener('dblclick', (event: MouseEvent) => {
+            const position = this.getRelativePosition(event.clientX, event.clientY);
+            this.onDoubleClick.trigger(position);
+            event.preventDefault();
+        }, activeEventOptions);
 
-
-
-        listenElement.addEventListener('wheel', (e: WheelEvent) => {
-            const relativePos = this.getRelativePosition(listenElement, e.clientX, e.clientY);
-            this.handelWheel(relativePos, e.deltaY);
-
-            e.stopPropagation();
-            e.preventDefault();
-
-            return false;
-        }, { ...touchEventOptions });
-
+        listenElement.addEventListener('wheel', (event: WheelEvent) => {
+            const position = this.getRelativePosition(event.clientX, event.clientY);
+            const deltaZoom = event.deltaY < 0 ? 1 : event.deltaY > 0 ? -1 : 0;
+            if (deltaZoom !== 0) {
+                this.onZoom.trigger(new ZoomEventArguments(position.x, position.y, deltaZoom));
+            }
+            event.preventDefault();
+        }, activeEventOptions);
     }
 
+    private getRelativePosition(clientX: number, clientY: number): Position2D {
+        const rect = this.listenElement.getBoundingClientRect();
+        const isCanvas = typeof HTMLCanvasElement !== 'undefined'
+            && this.listenElement instanceof HTMLCanvasElement;
 
-
-    private getRelativePosition(element: HTMLElement, clientX: number, clientY: number): Position2D {
-
-        const rect = element.getBoundingClientRect();
-
-        if (element instanceof HTMLCanvasElement) {
-            const scaleX = element.width / rect.width;
-            const scaleY = element.height / rect.height;
+        if (isCanvas) {
+            const scaleX = this.listenElement.width / rect.width;
+            const scaleY = this.listenElement.height / rect.height;
             return new Position2D(
                 (clientX - rect.left) * scaleX,
                 (clientY - rect.top) * scaleY,
@@ -179,82 +184,34 @@ export class UserInputManager {
         return new Position2D(clientX - rect.left, clientY - rect.top);
     }
 
+    private clearActivePointer(pointerId: number): void {
+        this.activePointerId = undefined;
+        this.pointerDownX = 0;
+        this.pointerDownY = 0;
+        this.lastPointerX = 0;
+        this.lastPointerY = 0;
+        this.dragged = false;
+
+        try {
+            if (this.listenElement.hasPointerCapture(pointerId)) {
+                this.listenElement.releasePointerCapture(pointerId);
+            }
+        } catch {
+            // The browser may already have released capture.
+        }
+    }
+
     public dispose(): void {
+        if (this.activePointerId !== undefined) {
+            this.clearActivePointer(this.activePointerId);
+        }
         this.eventController.abort();
         this.onMouseMove.dispose();
         this.onMouseUp.dispose();
         this.onMouseDown.dispose();
+        this.onTap.dispose();
+        this.onPointerCancel.dispose();
         this.onDoubleClick.dispose();
         this.onZoom.dispose();
     }
-
-
-    private handelMouseMove(position: Position2D) {
-
-        //- Move Point of View
-        if (this.mouseButton) {
-
-            const deltaX = (this.lastMouseX - position.x);
-            const deltaY = (this.lastMouseY - position.y);
-
-            //- save start of Mousedown
-            this.lastMouseX = position.x;
-            this.lastMouseY = position.y;
-
-            const mouseDragArguments = new MouseMoveEventArguments(position.x, position.y, deltaX, deltaY, true)
-            mouseDragArguments.mouseDownX = this.mouseDownX;
-            mouseDragArguments.mouseDownY = this.mouseDownY;
-
-            /// raise event
-            this.onMouseMove.trigger(mouseDragArguments);
-        }
-        else {
-            /// raise event
-            this.onMouseMove.trigger(new MouseMoveEventArguments(position.x, position.y, 0, 0, false));
-        }
-    }
-
-    private handelMouseDown(position: Position2D) {
-        //- save start of Mousedown
-        this.mouseButton = true;
-        this.mouseDownX = position.x;
-        this.mouseDownY = position.y;
-        this.lastMouseX = position.x;
-        this.lastMouseY = position.y;
-
-        /// create new event handler
-        this.onMouseDown.trigger(position);
-    }
-
-    private handleMouseDoubleClick(position: Position2D) {
-        this.onDoubleClick.trigger(position);
-    }
-
-    private handelMouseClear() {
-        this.mouseButton = false;
-        this.mouseDownX = 0;
-        this.mouseDownY = 0;
-        this.lastMouseX = 0;
-        this.lastMouseY = 0;
-    }
-
-    private handelMouseUp(position: Position2D) {
-        this.handelMouseClear();
-
-        this.onMouseUp.trigger(new Position2D(position.x, position.y));
-    }
-
-    /** Zoom view 
-     * todo: zoom to mouse pointer */
-    private handelWheel(position: Position2D, deltaY: number) {
-
-        if (deltaY < 0) {
-            this.onZoom.trigger(new ZoomEventArguments(position.x, position.y, 1));
-        }
-        if (deltaY > 0) {
-            this.onZoom.trigger(new ZoomEventArguments(position.x, position.y, -1));
-        }
-    }
-
-
 }

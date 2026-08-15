@@ -40,6 +40,8 @@ export class DisplayImage {
     public onMouseUp = new EventHandler<Position2D>();
     public onMouseDown = new EventHandler<Position2D>();
     public onMouseMove = new EventHandler<Position2D>();
+    public onTap = new EventHandler<Position2D>();
+    public onPointerCancel = new EventHandler<void>();
     public onDoubleClick = new EventHandler<Position2D>();
 
     public initSize(width: number, height: number) {

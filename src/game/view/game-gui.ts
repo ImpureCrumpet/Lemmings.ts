@@ -1,13 +1,11 @@
 import { Game } from '../game';
-import { CommandNuke } from '../game-play/commands/command-nuke';
-import { CommandReleaseRateDecrease } from '../game-play/commands/command-release-rate-decrease';
-import { CommandReleaseRateIncrease } from '../game-play/commands/command-release-rate-increase';
-import { CommandSelectSkill } from '../game-play/commands/command-select-skill';
+import { getSkillControlAction } from '../controls/game-control-actions';
 import { GameSkills } from '../game-play/game-skills';
 import { GameTimer } from '../game-play/game-timer';
 import { GameVictoryCondition } from '../game-play/game-victory-condition';
 import { SkillTypes } from '../game-play/skill-types';
 import { SkillPanelSprites } from '../resources/skill-panel-sprites';
+import type { Position2D } from '../utilities/position2d';
 import { DisplayImage } from './display-image';
 
 /** handles the in-game-gui. e.g. the panel on the bottom of the game */
@@ -21,6 +19,24 @@ export class GameGui {
     private display?: DisplayImage;
     private deltaReleaseRate = 0;
     private panelScale = 1;
+    private readonly handleMouseDown = (e?: Position2D) => {
+        this.deltaReleaseRate = 0;
+        if (e && e.y > 15 * this.panelScale) {
+            this.handleSkillMouseDown(e.x);
+        }
+    };
+    private readonly handleMouseUp = () => {
+        this.deltaReleaseRate = 0;
+    };
+    private readonly handlePointerCancel = () => {
+        this.deltaReleaseRate = 0;
+    };
+    private readonly handleDoubleClick = (e?: Position2D) => {
+        this.deltaReleaseRate = 0;
+        if (e && e.y > 15 * this.panelScale) {
+            this.handleSkillDoubleClick(e.x);
+        }
+    };
 
     constructor(private game: Game,
         private skillPanelSprites: SkillPanelSprites,
@@ -50,10 +66,10 @@ export class GameGui {
         }
 
         if (this.deltaReleaseRate > 0) {
-            this.game.queueCommand(new CommandReleaseRateIncrease(this.deltaReleaseRate));
+            this.game.performControlAction('release-rate-increase');
         }
         else {
-            this.game.queueCommand(new CommandReleaseRateDecrease(-this.deltaReleaseRate));
+            this.game.performControlAction('release-rate-decrease');
         }
 
     }
@@ -63,26 +79,33 @@ export class GameGui {
         const panelIndex = Math.trunc(x / (16 * this.panelScale));
 
         if (panelIndex == 0) {
-            this.deltaReleaseRate = -3;
+            this.deltaReleaseRate = -1;
             this.doReleaseRateChanges();
             return;
         }
         if (panelIndex == 1) {
 
-            this.deltaReleaseRate = 3;
+            this.deltaReleaseRate = 1;
             this.doReleaseRateChanges();
             return;
         }
 
         if (panelIndex == 10) {
-            this.gameTimer.toggle();
+            this.game.performControlAction('toggle-pause');
+            return;
+        }
+        if (panelIndex == 11) {
+            this.game.performControlAction('nuke');
             return;
         }
 
         const newSkill = this.getSkillByPanelIndex(panelIndex);
         if (newSkill == SkillTypes.UNKNOWN) return;
 
-        this.game.queueCommand(new CommandSelectSkill(newSkill));
+        const action = getSkillControlAction(newSkill);
+        if (action) {
+            this.game.performControlAction(action);
+        }
 
         this.skillSelectionChanged = true;
     }
@@ -93,51 +116,39 @@ export class GameGui {
 
         /// trigger the nuke for all lemmings
         if (panelIndex == 11) {
-            this.game.queueCommand(new CommandNuke());
+            this.game.performControlAction('nuke');
         }
     }
 
     /** init the display */
     public setGuiDisplay(display: DisplayImage) {
+        this.detachDisplayHandlers();
         this.display = display;
 
         /// handle user input in gui
-        this.display.onMouseDown.on((e) => {
-            this.deltaReleaseRate = 0;
-
-            if (!e) {
-                return;
-            }
-
-            if (e.y > 15 * this.panelScale) {
-                this.handleSkillMouseDown(e.x);
-            }
-        });
-
-        this.display.onMouseUp.on(() => {
-            /// clear release rate change
-            this.deltaReleaseRate = 0;
-        })
-
-        this.display.onDoubleClick.on((e) => {
-            /// clear release rate change
-            this.deltaReleaseRate = 0;
-
-            if (!e) {
-                return;
-            }
-
-            if (e.y > 15 * this.panelScale) {
-                this.handleSkillDoubleClick(e.x);
-            }
-
-        })
+        this.display.onMouseDown.on(this.handleMouseDown);
+        this.display.onMouseUp.on(this.handleMouseUp);
+        this.display.onPointerCancel.on(this.handlePointerCancel);
+        this.display.onDoubleClick.on(this.handleDoubleClick);
 
 
         this.gameTimeChanged = true;
         this.skillsCountChanged = true;
         this.skillSelectionChanged = true;
         this.backgroundChanged = true;
+    }
+
+    private detachDisplayHandlers(): void {
+        this.display?.onMouseDown.off(this.handleMouseDown);
+        this.display?.onMouseUp.off(this.handleMouseUp);
+        this.display?.onPointerCancel.off(this.handlePointerCancel);
+        this.display?.onDoubleClick.off(this.handleDoubleClick);
+    }
+
+    public dispose(): void {
+        this.detachDisplayHandlers();
+        this.display = undefined;
+        this.deltaReleaseRate = 0;
     }
 
 

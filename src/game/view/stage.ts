@@ -11,6 +11,8 @@ export class Stage {
     private guiImgProps: StageImageProperties;
 
     private controller: UserInputManager;
+    private activeStageImage: StageImageProperties | null = null;
+    private pendingTapStageImage: StageImageProperties | null = null;
 
 
     constructor(canvasForOutput: HTMLCanvasElement, gameZoom = 2, guiZoom = gameZoom) {
@@ -19,6 +21,8 @@ export class Stage {
         this.handleOnMouseUp();
         this.handleOnMouseDown();
         this.handleOnMouseMove();
+        this.handleOnTap();
+        this.handleOnPointerCancel();
         this.handleOnDoubleClick();
         this.handelOnZoom();
 
@@ -63,11 +67,14 @@ export class Stage {
                 return;
             }
 
+            this.activeStageImage = null;
+            this.pendingTapStageImage = null;
             const stageImage = this.getStageImageAt(e.x, e.y);
             if ((stageImage == null) || (stageImage.display == null)) {
                 return;
             }
 
+            this.activeStageImage = stageImage;
             stageImage.display.onMouseDown.trigger(this.calcPosition2D(stageImage, e));
         });
     }
@@ -80,7 +87,10 @@ export class Stage {
                 return;
             }
 
-            const stageImage = this.getStageImageAt(e.x, e.y);
+            const pressedStageImage = this.activeStageImage;
+            const stageImage = pressedStageImage ?? this.getStageImageAt(e.x, e.y);
+            this.pendingTapStageImage = pressedStageImage;
+            this.activeStageImage = null;
             if ((stageImage == null) || (stageImage.display == null)) {
                 return;
             }
@@ -88,6 +98,29 @@ export class Stage {
             const pos = this.calcPosition2D(stageImage, e);
 
             stageImage.display.onMouseUp.trigger(pos);
+        });
+    }
+
+    private handleOnTap(): void {
+        this.controller.onTap.on((e) => {
+            if (!e) {
+                return;
+            }
+
+            const stageImage = this.pendingTapStageImage ?? this.getStageImageAt(e.x, e.y);
+            this.pendingTapStageImage = null;
+            if (!stageImage?.display) {
+                return;
+            }
+            stageImage.display.onTap.trigger(this.calcPosition2D(stageImage, e));
+        });
+    }
+
+    private handleOnPointerCancel(): void {
+        this.controller.onPointerCancel.on(() => {
+            this.activeStageImage?.display?.onPointerCancel.trigger();
+            this.activeStageImage = null;
+            this.pendingTapStageImage = null;
         });
     }
 
@@ -100,7 +133,7 @@ export class Stage {
             }
 
             if (e.button) {
-                const stageImage = this.getStageImageAt(e.mouseDownX, e.mouseDownY);
+                const stageImage = this.getStageImageAt(e.pointerDownX, e.pointerDownY);
                 if (stageImage == null) {
                     return;
                 }

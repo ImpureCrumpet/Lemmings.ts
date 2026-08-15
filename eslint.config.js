@@ -1,5 +1,6 @@
 import eslint from '@eslint/js';
 import vue from 'eslint-plugin-vue';
+import accessibility from 'eslint-plugin-vuejs-accessibility';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
@@ -9,6 +10,7 @@ export default tseslint.config(
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
   ...vue.configs['flat/recommended'],
+  ...accessibility.configs['flat/recommended'],
   {
     files: ['**/*.vue'],
     languageOptions: {

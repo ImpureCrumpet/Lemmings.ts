@@ -38,6 +38,8 @@ The project uses Vue 3, TypeScript, and Vite. The framework-independent game sou
 
 The regression suite uses only project-authored synthetic data. See [docu/TESTING.md](docu/TESTING.md) for its fixture conventions and how to add parser, gameplay, terrain, or replay cases.
 
+Mouse, touch, pen, and keyboard controls are documented in [docu/CONTROLS.md](docu/CONTROLS.md). The game includes a semantic toolbar with readable skill names and counts in addition to the classic canvas panel.
+
 ### How to debug using *Visual Studio Code*
 * install [Visual Studio Code](https://code.visualstudio.com/)
 * open project folder (root folder of the project) in *Visual Studio Code*
