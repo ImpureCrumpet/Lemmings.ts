@@ -89,12 +89,21 @@ export class UnpackFilePart {
 
 		}
 
-		if (this.checksum == bitReader.getCurrentChecksum()) {
-			this.log.debug('doUnpacking(' + fileReader.fileName + ') done! ');
+		if (!outBuffer.eof()) {
+			throw new Error(
+				`Unable to unpack ${fileReader.fileName} part ${this.index}: `
+				+ `expected ${this.decompressedSize} output bytes`,
+			);
 		}
-		else {
-			this.log.log('doUnpacking(' + fileReader.fileName + ') : Checksum mismatch! ');
+
+		const actualChecksum = bitReader.getCurrentChecksum();
+		if (this.checksum !== actualChecksum) {
+			throw new Error(
+				`Checksum mismatch in ${fileReader.fileName} part ${this.index}: `
+				+ `expected ${this.checksum}, received ${actualChecksum}`,
+			);
 		}
+		this.log.debug('doUnpacking(' + fileReader.fileName + ') done! ');
 
 		/// create FileReader from buffer
 		return outBuffer.getFileReader(fileReader.fileName + '[' + this.index + ']');

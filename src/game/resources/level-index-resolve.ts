@@ -52,7 +52,7 @@ export class LevelIndexResolve {
 
     /// the level number is the sum-index of the level
     let levelNo = 0;
-    for (let i = 0; i < (levelMode - 1); i++) {
+    for (let i = 0; i < levelMode; i++) {
       levelNo += levelOrderList[i].length;
     }
 
@@ -62,4 +62,3 @@ export class LevelIndexResolve {
     return liType;
   }
 }
-

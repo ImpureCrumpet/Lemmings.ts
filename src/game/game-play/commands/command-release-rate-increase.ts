@@ -17,12 +17,13 @@ export class CommandReleaseRateIncrease implements ICommand {
     }
 
     /** load parameters for this command from serializer */
-    load(values: number[]): void {
+    load(values: number[]): boolean {
         if (values.length < 1) {
             this.log.log('Unable to process load');
-            return;
+            return false;
         }
         this.number = values[0];
+        return true;
     }
 
     /** save parameters of this command to serializer */
@@ -36,4 +37,3 @@ export class CommandReleaseRateIncrease implements ICommand {
         return victoryConditions.changeReleaseRate(this.number);
     }
 }
-

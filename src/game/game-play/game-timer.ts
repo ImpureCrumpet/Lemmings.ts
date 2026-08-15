@@ -28,6 +28,9 @@ export class GameTimer {
 
     /** set a factor to speed up >1 or slow down <1 the game */
     public set speedFactor(newSpeedFactor: number) {
+        if (!Number.isFinite(newSpeedFactor) || newSpeedFactor <= 0) {
+            throw new RangeError(`Game speed factor must be greater than zero; received ${newSpeedFactor}`);
+        }
         this._speedFactor = newSpeedFactor;
 
         if (!this.isRunning()) {

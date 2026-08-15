@@ -17,12 +17,13 @@ import type { ICommand } from './command';
         }
 
         /** load parameters for this command from serializer */
-        load(values: number[]): void {
+        load(values: number[]): boolean {
             if (values.length < 1) {
                 this.log.log('Unable to process load');
-                return;
+                return false;
             }
             this.lemmingId = values[0];
+            return true;
         }
 
         /** save parameters of this command to serializer */
@@ -61,5 +62,4 @@ import type { ICommand } from './command';
 
         }
     }
-
 

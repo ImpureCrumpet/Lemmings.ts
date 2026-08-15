@@ -35,6 +35,12 @@ const level = shallowRef<Level>();
 
 let gameEndTimeout: number | undefined;
 
+function reportLoadError(error: unknown): void {
+  loadError.value = error instanceof Error
+    ? error.message
+    : 'Unable to load the original game data.';
+}
+
 async function start(replayString?: string): Promise<void> {
   level.value = undefined;
 
@@ -43,11 +49,18 @@ async function start(replayString?: string): Promise<void> {
     return;
   }
 
-  const nextGame = await gameFactory.getGame(
-    gameType.value,
-    levelGroupIndex.value,
-    levelIndex.value,
-  );
+  loadError.value = '';
+  let nextGame: Game | undefined;
+  try {
+    nextGame = await gameFactory.getGame(
+      gameType.value,
+      levelGroupIndex.value,
+      levelIndex.value,
+    );
+  } catch (error) {
+    reportLoadError(error);
+    return;
+  }
   if (!nextGame) {
     log.log('Unable to create game!');
     return;
@@ -160,32 +173,37 @@ async function exportToolbarPng(): Promise<void> {
 }
 
 async function moveToLevel(moveInterval = 0): Promise<void> {
-  levelIndex.value += Math.trunc(moveInterval);
+  loadError.value = '';
+  try {
+    levelIndex.value += Math.trunc(moveInterval);
 
-  const config = await gameFactory.getConfig(gameType.value);
-  if (!config) {
-    return;
-  }
-
-  if (levelIndex.value < 0) {
-    if (levelGroupIndex.value > 0) {
-      levelGroupIndex.value -= 1;
-      levelIndex.value = config.level.getGroupLength(levelGroupIndex.value) - 1;
-    } else {
-      levelIndex.value = 0;
+    const config = await gameFactory.getConfig(gameType.value);
+    if (!config) {
+      return;
     }
-  }
 
-  if (levelIndex.value >= config.level.getGroupLength(levelGroupIndex.value)) {
-    if (levelGroupIndex.value < config.level.order.length - 1) {
-      levelGroupIndex.value += 1;
-      levelIndex.value = 0;
-    } else {
-      levelIndex.value = config.level.getGroupLength(levelGroupIndex.value) - 1;
+    if (levelIndex.value < 0) {
+      if (levelGroupIndex.value > 0) {
+        levelGroupIndex.value -= 1;
+        levelIndex.value = config.level.getGroupLength(levelGroupIndex.value) - 1;
+      } else {
+        levelIndex.value = 0;
+      }
     }
-  }
 
-  await loadLevel();
+    if (levelIndex.value >= config.level.getGroupLength(levelGroupIndex.value)) {
+      if (levelGroupIndex.value < config.level.order.length - 1) {
+        levelGroupIndex.value += 1;
+        levelIndex.value = 0;
+      } else {
+        levelIndex.value = config.level.getGroupLength(levelGroupIndex.value) - 1;
+      }
+    }
+
+    await loadLevel();
+  } catch (error) {
+    reportLoadError(error);
+  }
 }
 
 async function selectGameType(selectedGameType: GameTypes): Promise<void> {
@@ -202,9 +220,7 @@ async function selectGameType(selectedGameType: GameTypes): Promise<void> {
   try {
     await loadLevel();
   } catch (error) {
-    loadError.value = error instanceof Error
-      ? error.message
-      : 'Unable to load the original game data.';
+    reportLoadError(error);
   }
 }
 

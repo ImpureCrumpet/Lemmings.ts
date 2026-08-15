@@ -7,19 +7,19 @@ export class GameSkills {
     private selectedSkill: SkillTypes = SkillTypes.CLIMBER;
 
     constructor(level: Level) {
-        this.skills = level.skills;
+        this.skills = [...level.skills];
     }
 
     public onCountChanged = new EventHandler<SkillTypes>();
 
     /** return true if the skill can be reduced / used */
     public canDecreaseSkill(type: SkillTypes): boolean {
-        return (this.skills[type] > 0);
+        return SkillTypes.isValid(type) && this.getSkill(type) > 0;
     }
 
 
     public decreaseSkill(type: SkillTypes): boolean {
-        if (this.skills[type] <= 0) {
+        if (!this.canDecreaseSkill(type)) {
             return false;
         }
 
@@ -29,10 +29,10 @@ export class GameSkills {
         return true;
     }
 
-    public getSkill(type: SkillTypes) {
+    public getSkill(type: SkillTypes): number {
         if (!SkillTypes.isValid(type)) return 0;
 
-        return this.skills[type];
+        return this.skills[type] ?? 0;
     }
 
     public getSelectedSkill(): SkillTypes {
@@ -51,14 +51,14 @@ export class GameSkills {
         }
 
         this.selectedSkill = skill;
-        this.onSelectionChanged.trigger();
+        this.onSelectionChanged.trigger(skill);
 
         return true;
     }
 
     /** increase the amount of actions for all skills */
     public cheat() {
-        for (let i = 0; i < this.skills.length; i++) {
+        for (let i = SkillTypes.CLIMBER; i < SkillTypes.length(); i++) {
             this.skills[i] = 99;
             this.onCountChanged.trigger(i as SkillTypes);
         }

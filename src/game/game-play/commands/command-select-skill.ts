@@ -18,12 +18,13 @@ export class CommandSelectSkill implements ICommand {
     }
 
     /** load parameters for this command from serializer */
-    load(values: number[]): void {
-        if (values.length < 0) {
+    load(values: number[]): boolean {
+        if (values.length < 1) {
             this.log.log('Unable to process load');
-            return;
+            return false;
         }
         this.skill = values[0] as SkillTypes;
+        return true;
     }
 
     /** save parameters of this command to serializer */
@@ -42,5 +43,3 @@ export class CommandSelectSkill implements ICommand {
         return gameSkill.setSelectedSkill(this.skill);
     }
 }
-
-

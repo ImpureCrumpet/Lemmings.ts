@@ -35,7 +35,9 @@ export class TriggerManager {
     public remove(trigger: Trigger) {
         const triggerIndex = this.triggers.indexOf(trigger);
 
-        this.triggers.splice(triggerIndex, 1);
+        if (triggerIndex >= 0) {
+            this.triggers.splice(triggerIndex, 1);
+        }
     }
 
     public addRange(newTriggers: Trigger[]) {

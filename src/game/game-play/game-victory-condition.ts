@@ -55,7 +55,7 @@ export class GameVictoryCondition {
 
     /** one lemming reached the exit */
     public addSurvivor(): void {
-        if (this.isFinalize) {
+        if (this.isFinalize || this.survivorCount >= this.releaseCount) {
             return;
         }
 
@@ -94,7 +94,7 @@ export class GameVictoryCondition {
 
     /** if a lemming die */
     public removeOne(): void {
-        if (this.isFinalize) {
+        if (this.isFinalize || this.outCount <= 0) {
             return;
         }
 

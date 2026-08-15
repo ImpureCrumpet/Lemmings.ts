@@ -9,8 +9,9 @@ export class CommandNuke implements ICommand {
     }
 
     /** load parameters for this command from serializer */
-    load(): void {
+    load(): boolean {
         // nothing to do
+        return true;
     }
 
     /** save parameters of this command to serializer */
@@ -32,4 +33,3 @@ export class CommandNuke implements ICommand {
         return true;
     }
 }
-

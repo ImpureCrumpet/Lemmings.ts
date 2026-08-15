@@ -29,24 +29,26 @@ export class SolidLayer {
 
     /** clear a point  */
     public clearGroundAt(x: number, y: number) {
-        if (!this.groundMask) {
+        if (!this.groundMask || !this.isInBounds(x, y)) {
             return false;
         }
 
         const index = x + y * this.width;
 
         this.groundMask[index] = 0;
+        return true;
     }
 
     /** clear a point  */
     public setGroundAt(x: number, y: number) {
-        if (!this.groundMask) {
+        if (!this.groundMask || !this.isInBounds(x, y)) {
             return false;
         }
         
         const index = x + y * this.width;
 
         this.groundMask[index] = 1;
+        return true;
     }
 
     constructor(width: number, height: number, mask?: Int8Array) {
@@ -55,6 +57,8 @@ export class SolidLayer {
         this.groundMask = mask;
     }
 
+    private isInBounds(x: number, y: number): boolean {
+        return x >= 0 && x < this.width && y >= 0 && y < this.height;
+    }
+
 }
-
-

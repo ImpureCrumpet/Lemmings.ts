@@ -41,12 +41,17 @@ export class Lemming {
 
     /** set the countdown action of this lemming */
     public setCountDown(action: IActionSystem | null): boolean {
-        this.countdownAction = action;
+        if (action == null) {
+            this.countdownAction = null;
+            this.countdown = 0;
+            return true;
+        }
 
         if (this.countdown > 0) {
             return false;
         }
 
+        this.countdownAction = action;
         this.countdown = 80;
 
         return true;

@@ -1,185 +1,182 @@
-import { LogHandler } from '@/game/utilities/log-handler';
-
-/** Class to provide a read pointer and read functions to a binary Buffer */
+/** Provides bounds-checked, cursor-based access to binary game data. */
 export class BinaryReader {
-
-  private log: LogHandler = new LogHandler('BinaryReader');
-  public fileName: string;
-  public length: number;
+  public readonly fileName: string;
+  public readonly length: number;
   public pos: number;
 
-  protected data: Uint8Array;
-  protected hiddenOffset: number;
+  protected readonly data: Uint8Array;
+  protected readonly hiddenOffset: number;
 
-
-  constructor(dataArray?: BinaryReader | Uint8Array | ArrayBuffer | Blob, offset: number | null = null, length: number | null = null, filename = '[unknown]') {
-
-    this.fileName = filename;
-
-    offset = offset || 0;
-
-    let dataLength: number;
+  constructor(
+    dataArray?: BinaryReader | Uint8Array | ArrayBuffer | Blob,
+    offset: number | null = null,
+    length: number | null = null,
+    filename = '[unknown]',
+  ) {
+    let resolvedFileName = filename;
+    let data: Uint8Array;
+    let baseOffset = 0;
+    let availableLength: number;
 
     if (dataArray == null) {
-      this.data = new Uint8Array(0);
-      dataLength = this.data.byteLength;
-      this.log.log('BinaryReader from NULL; size:' + 0);
-
+      data = new Uint8Array(0);
+      availableLength = 0;
     } else if (dataArray instanceof BinaryReader) {
-      //- if dataArray is BinaryReader use there data
-      this.data = dataArray.data;
-      dataLength = dataArray.length;
-      this.log.log('BinaryReader from BinaryReader; size:' + dataLength);
-
+      data = dataArray.data;
+      baseOffset = dataArray.hiddenOffset;
+      availableLength = dataArray.length;
+      if (filename === '[unknown]') {
+        resolvedFileName = dataArray.fileName;
+      }
     } else if (dataArray instanceof Uint8Array) {
-      this.data = dataArray;
-      dataLength = dataArray.byteLength;
-      this.log.log('BinaryReader from Uint8Array; size:' + dataLength);
-
-    }
-    else if (dataArray instanceof ArrayBuffer) {
-      this.data = new Uint8Array(dataArray);
-      dataLength = dataArray.byteLength;
-      this.log.log('BinaryReader from ArrayBuffer; size:' + dataLength);
-    }
-    else if (dataArray instanceof Blob) {
-      this.data = new Uint8Array();
-      dataLength = 0;
-      this.log.log('Error: not supported - BinaryReader from Blob; size:' + dataLength);
-    }
-    else {
-      this.data = dataArray;
-      dataLength = this.data.length;
-      this.log.log('BinaryReader from unknown: ' + dataArray + '; size:' + dataLength);
+      data = dataArray;
+      availableLength = data.byteLength;
+    } else if (dataArray instanceof ArrayBuffer) {
+      data = new Uint8Array(dataArray);
+      availableLength = data.byteLength;
+    } else {
+      throw new TypeError('BinaryReader does not support Blob input; convert it to an ArrayBuffer first.');
     }
 
-    if (length == null) length = dataLength - offset;
+    this.fileName = resolvedFileName;
+    const relativeOffset = offset ?? 0;
+    const viewLength = length ?? availableLength - relativeOffset;
 
-    this.hiddenOffset = offset;
-    this.length = length;
+    if (!Number.isInteger(relativeOffset) || relativeOffset < 0 || relativeOffset > availableLength) {
+      throw new RangeError(`Invalid offset ${relativeOffset} for ${this.fileName} (${availableLength} bytes)`);
+    }
+    if (!Number.isInteger(viewLength) || viewLength < 0 || relativeOffset + viewLength > availableLength) {
+      throw new RangeError(
+        `Invalid length ${viewLength} at offset ${relativeOffset} for ${this.fileName} (${availableLength} bytes)`,
+      );
+    }
+
+    this.data = data;
+    this.hiddenOffset = baseOffset + relativeOffset;
+    this.length = viewLength;
     this.pos = this.hiddenOffset;
-
   }
 
-
-
-  /** Read one Byte from stream */
+  /** Read one byte from the stream. */
   public readByte(offset?: number): number {
-    if (offset != null) this.pos = (offset + this.hiddenOffset);
-
-    if ((this.pos < 0) || (this.pos > this.data.length)) {
-      this.log.log('read out of data: ' + this.fileName + ' - size: ' + this.data.length + ' @ ' + this.pos);
-      return 0;
+    if (offset != null) {
+      this.setOffset(offset);
     }
 
-    const v: number = this.data[this.pos];
+    this.assertAvailable(1);
+    const value = this.data[this.pos];
     this.pos++;
-
-    return v;
+    return value;
   }
 
-
-  /** Read one DWord (4 Byte) from stream (little ending) */
+  /** Read an integer in the file formats' default byte order (most significant byte first). */
   public readInt(length = 4, offset = -1): number {
-
-    if (offset < 0) {
-      offset = this.pos;
+    this.assertIntegerLength(length);
+    if (offset >= 0) {
+      this.setOffset(offset);
     }
+    this.assertAvailable(length);
 
-    if (length == 4) {
-      const v: number = (this.data[offset] << 24) | (this.data[offset + 1] << 16) | (this.data[offset + 2] << 8) | (this.data[offset + 3]);
-      this.pos = offset + 4;
-      return v;
+    let value = 0;
+    for (let index = 0; index < length; index++) {
+      value = (value << 8) | this.data[this.pos++];
     }
-
-    let v = 0;
-    for (let i = length; i > 0; i--) {
-      v = (v << 8) | this.data[offset];
-      offset++;
-    }
-
-    this.pos = offset;
-
-    return v;
+    return value;
   }
 
-  /** Read one DWord (4 Byte) from stream (big ending) */
+  /** Read a four-byte integer with the least significant byte first. */
   public readIntBE(offset?: number): number {
-
-    if (offset == null) {
-      offset = this.pos;
+    if (offset != null) {
+      this.setOffset(offset);
     }
+    this.assertAvailable(4);
 
-    const v: number = (this.data[offset]) | (this.data[offset + 1] << 8) | (this.data[offset + 2] << 16) | (this.data[offset + 3] << 24);
-    this.pos = offset + 4;
-
-    return v;
+    const value = this.data[this.pos]
+      | (this.data[this.pos + 1] << 8)
+      | (this.data[this.pos + 2] << 16)
+      | (this.data[this.pos + 3] << 24);
+    this.pos += 4;
+    return value;
   }
 
-
-  /** Read one Word (2 Byte) from stream (big ending) */
+  /** Read a two-byte word with the most significant byte first. */
   public readWord(offset = -1): number {
-    if (offset < 0) {
-      offset = this.pos;
+    if (offset >= 0) {
+      this.setOffset(offset);
     }
+    this.assertAvailable(2);
 
-    const v: number = (this.data[offset] << 8) | (this.data[offset + 1]);
-    this.pos = offset + 2;
-
-    return v;
+    const value = (this.data[this.pos] << 8) | this.data[this.pos + 1];
+    this.pos += 2;
+    return value;
   }
 
-  /** Read one Word (2 Byte) from stream (big ending) */
+  /** Read a two-byte word with the least significant byte first. */
   public readWordBE(offset = -1): number {
-    if (offset < 0) {
-      offset = this.pos;
+    if (offset >= 0) {
+      this.setOffset(offset);
     }
+    this.assertAvailable(2);
 
-    const v: number = (this.data[offset]) | (this.data[offset + 1] << 8);
-    this.pos = offset + 2;
-
-    return v;
+    const value = this.data[this.pos] | (this.data[this.pos + 1] << 8);
+    this.pos += 2;
+    return value;
   }
 
-
-  /** Read a String */
+  /** Read a fixed-length byte string. */
   public readString(length: number, offset = -1): string {
-
-    if (offset < 0) {
-      this.pos = offset + this.hiddenOffset;
+    if (!Number.isInteger(length) || length < 0) {
+      throw new RangeError(`Invalid string length ${length} for ${this.fileName}`);
     }
+    if (offset >= 0) {
+      this.setOffset(offset);
+    }
+    this.assertAvailable(length);
 
     let result = '';
-
-    for (let i = 0; i < length; i++) {
-      const v: number = this.data[this.pos];
-      this.pos++;
-
-      result += String.fromCharCode(v);
+    const end = this.pos + length;
+    while (this.pos < end) {
+      result += String.fromCharCode(this.data[this.pos++]);
     }
     return result;
-
   }
 
-  /** return the current curser position */
+  /** Return the current cursor position relative to this reader's view. */
   public getOffset(): number {
     return this.pos - this.hiddenOffset;
   }
 
-  /** set the current curser position */
-  public setOffset(newPos: number) {
+  /** Set the current cursor position relative to this reader's view. */
+  public setOffset(newPos: number): void {
+    if (!Number.isInteger(newPos) || newPos < 0 || newPos > this.length) {
+      throw new RangeError(`Invalid offset ${newPos} for ${this.fileName} (${this.length} bytes)`);
+    }
     this.pos = newPos + this.hiddenOffset;
   }
 
-  /** return true if the curser position is out of data */
+  /** Return true when the cursor is at the end of this reader's view. */
   public eof(): boolean {
-    const pos = this.pos - this.hiddenOffset;
-    return ((pos >= this.length) || (pos < 0));
+    const position = this.getOffset();
+    return position >= this.length || position < 0;
   }
 
-  /** return a String of the data */
+  /** Return the whole view as a byte string. */
   public readAll(): string {
     return this.readString(this.length, 0);
   }
 
+  private assertAvailable(byteCount: number): void {
+    const position = this.getOffset();
+    if (position < 0 || position + byteCount > this.length) {
+      throw new RangeError(
+        `Unexpected end of ${this.fileName}: requested ${byteCount} byte(s) at ${position}, length is ${this.length}`,
+      );
+    }
+  }
+
+  private assertIntegerLength(length: number): void {
+    if (!Number.isInteger(length) || length < 1 || length > 4) {
+      throw new RangeError(`Integer length must be between 1 and 4 bytes; received ${length}`);
+    }
+  }
 }

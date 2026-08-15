@@ -16,8 +16,7 @@ export class FileContainer {
 	/** Unpack a part (chunks / segments) of the file and return it */
 	public getPart(index: number): BinaryReader {
 		if ((index < 0) || (index >= this.parts.length)) {
-			this.log.log('getPart(' + index + ') out of index!');
-			return new BinaryReader();
+			throw new RangeError(`File part ${index} is out of range (container has ${this.parts.length})`);
 		}
 		return this.parts[index].unpack();
 	}
@@ -38,7 +37,13 @@ export class FileContainer {
 		/// the size of the header
 		const HEADER_SIZE = 10;
 
-		while (pos + HEADER_SIZE < fileReader.length) {
+		while (pos < fileReader.length) {
+			if (fileReader.length - pos < HEADER_SIZE) {
+				if (this.parts.length > 0) {
+					break;
+				}
+				throw new Error(`Truncated container header in ${fileReader.fileName} at offset ${pos}`);
+			}
 
 			fileReader.setOffset(pos);
 
@@ -63,9 +68,14 @@ export class FileContainer {
 			part.index = this.parts.length;
 
 			/// check if the data are valid
-			if ((part.offset < 0) || (size > 0xFFFFFF) || (size < 10)) {
-				this.log.log('out of sync ' + fileReader.fileName);
-				break;
+			if ((part.offset < 0) || (size > 0xFFFFFF) || (size < HEADER_SIZE)) {
+				throw new Error(`Invalid part size ${size} in ${fileReader.fileName} at offset ${pos}`);
+			}
+			if (pos + size > fileReader.length) {
+				throw new Error(
+					`Truncated part in ${fileReader.fileName} at offset ${pos}: declared ${size} bytes, `
+					+ `${fileReader.length - pos} available`,
+				);
 			}
 
 			//- add part

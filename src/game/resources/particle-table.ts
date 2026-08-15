@@ -11,7 +11,7 @@ export class ParticleTable {
 
         /// read particle coordinates form Base64 string
         this.particleData = new Array(51);
-        const data = window.atob(ParticleTable.particleDataBase64);
+        const data = globalThis.atob(ParticleTable.particleDataBase64);
 
         let pos = 0;
 

@@ -155,7 +155,9 @@ export class Level {
 
     /** set a point in the map to solid ground  */
     public setGroundAt(x: number, y: number, palletIndex: number) {
-        this.groundMask.setGroundAt(x, y);
+        if (!this.groundMask.setGroundAt(x, y)) {
+            return;
+        }
 
         const index = (y * this.width + x) * 4;
         this.groundImage[index + 0] = this.colorPalette.getR(palletIndex);
@@ -171,7 +173,9 @@ export class Level {
 
     /** clear a point  */
     public clearGroundAt(x: number, y: number) {
-        this.groundMask.clearGroundAt(x, y);
+        if (!this.groundMask.clearGroundAt(x, y)) {
+            return;
+        }
 
         const index = (y * this.width + x) * 4;
 

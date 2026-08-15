@@ -14,11 +14,11 @@ export class OddTableReader {
      *  Odd-Tables are only used for the 'Original Lemmings' Game 
      */
     public getLevelProperties(levelNumber: number): LevelProperties | null {
-        if ((levelNumber >= this.levelProperties.length) && (levelNumber < 0)) {
+        if ((levelNumber >= this.levelProperties.length) || (levelNumber < 0)) {
             return null;
         }
 
-        return this.levelProperties[levelNumber];
+        return this.levelProperties[levelNumber] ?? null;
     }
 
     constructor(oddFile: BinaryReader) {

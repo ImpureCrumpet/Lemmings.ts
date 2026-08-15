@@ -1,5 +1,4 @@
 import { Game } from '@/game/game';
-import { LogHandler } from '@/game/utilities/log-handler';
 import { GameTimer } from '../game-timer';
 import type { ICommand } from './command';
 import { CommandLemmingsAction } from './command-lemming-action';
@@ -8,46 +7,75 @@ import { CommandReleaseRateDecrease } from './command-release-rate-decrease';
 import { CommandReleaseRateIncrease } from './command-release-rate-increase';
 import { CommandSelectSkill } from './command-select-skill';
 
-/** manages commands user -> game */
+/** Manages live commands and deterministic replay playback. */
 export class CommandManager {
-
-    private log = new LogHandler('CommandManager');
-    private runCommands: { [tick: number]: ICommand } = {};
-    private loggedCommands: { [tick: number]: ICommand } = {};
+    private runCommands: Record<number, ICommand[]> = {};
+    private loggedCommands: Record<number, ICommand[]> = {};
 
     public constructor(private game: Game, private gameTimer: GameTimer) {
-
         this.gameTimer.onBeforeGameTick.on((tick?: number) => {
-            if (!tick) {
+            if (tick == null) {
                 return;
             }
 
-            const command = this.runCommands[tick];
-            if (!command) return;
-
-            this.queueCommand(command);
+            for (const command of this.runCommands[tick] ?? []) {
+                this.queueCommand(command);
+            }
         });
-
     }
 
-    /** load parameters for this command from serializer */
+    /** Replace the pending replay with commands parsed from a serialized replay. */
     public loadReplay(replayString: string): void {
+        this.runCommands = {};
+        if (replayString.trim().length === 0) {
+            return;
+        }
 
-        const parts = replayString.split('&');
-        for (let i = 0; i < parts.length; i++) {
-            const commandStr = parts[i].split('=', 2);
-            if (commandStr.length != 2) continue;
+        for (const part of replayString.split('&')) {
+            const separatorIndex = part.indexOf('=');
+            if (separatorIndex < 1) {
+                continue;
+            }
 
-            const tick = (+commandStr[0]) | 0;
-            const newCmd = this.parseCommand(commandStr[1]);
+            const tickValue = Number(part.slice(0, separatorIndex));
+            if (!Number.isInteger(tickValue) || tickValue < 0) {
+                continue;
+            }
 
-            if (newCmd) {
-                this.runCommands[tick] = newCmd;
+            const command = this.parseCommand(part.slice(separatorIndex + 1));
+            if (command) {
+                (this.runCommands[tickValue] ??= []).push(command);
             }
         }
     }
 
-    private commandFactory(type: string): ICommand | null{
+    /** Execute a command now and record it when the game accepts it. */
+    public queueCommand(newCommand: ICommand): boolean {
+        const currentTick = this.gameTimer.getGameTicks();
+
+        if (!newCommand.execute(this.game)) {
+            return false;
+        }
+
+        (this.loggedCommands[currentTick] ??= []).push(newCommand);
+        return true;
+    }
+
+    /** Serialize accepted commands in canonical tick and insertion order. */
+    public serialize(): string {
+        const result: string[] = [];
+        const ticks = Object.keys(this.loggedCommands).map(Number).sort((left, right) => left - right);
+
+        for (const tick of ticks) {
+            for (const command of this.loggedCommands[tick]) {
+                result.push(`${tick}=${command.getCommandKey()}${command.save().join(':')}`);
+            }
+        }
+
+        return result.join('&');
+    }
+
+    private commandFactory(type: string): ICommand | null {
         switch (type.toLowerCase()) {
             case 'l':
                 return new CommandLemmingsAction();
@@ -64,47 +92,24 @@ export class CommandManager {
         }
     }
 
-    private parseCommand(valuesStr: string): ICommand | null {
-        if (valuesStr.length < 1) {
+    private parseCommand(serializedCommand: string): ICommand | null {
+        if (serializedCommand.length < 1) {
             return null;
         }
 
-        const newCommand = this.commandFactory(valuesStr.substr(0, 1));
+        const newCommand = this.commandFactory(serializedCommand.slice(0, 1));
         if (!newCommand) {
             return null;
         }
 
-        const values = valuesStr.substr(1).split(':');
-        newCommand.load(values.map(Number));
-
-        return newCommand;
-    }
-
-    /** add a command to execute queue */
-    public queueCommand(newCommand: ICommand) {
-        const currentTick = this.gameTimer.getGameTicks();
-
-        if (newCommand.execute(this.game)) {
-            // only log commands that are executable
-            this.loggedCommands[currentTick] = newCommand;
+        const serializedValues = serializedCommand.slice(1);
+        const values = serializedValues.length === 0
+            ? []
+            : serializedValues.split(':').map(Number);
+        if (values.some((value) => !Number.isFinite(value))) {
+            return null;
         }
+
+        return newCommand.load(values) ? newCommand : null;
     }
-
-
-    public serialize(): string {
-        const result: string[] = [];
-
-        Object.keys(this.loggedCommands).forEach((key) => {
-            const command = this.loggedCommands[+key];
-
-            result.push(key + '=' + command.getCommandKey() + command.save().join(':'));
-
-        });
-
-        return result.join('&');
-
-    }
-
 }
-
-

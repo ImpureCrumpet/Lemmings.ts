@@ -1,4 +1,3 @@
-import { LogHandler } from '@/game/utilities/log-handler';
 import { BinaryReader } from './binary-reader';
 import { BitReader } from './bit-reader';
 
@@ -8,8 +7,6 @@ export class BitWriter {
 	private outData: Uint8Array;
 	private outPos: number;
 	private bitReader: BitReader;
-	private log: LogHandler = new LogHandler("BitWriter");
-
 	constructor(bitReader: BitReader, outLength: number) {
 		this.outData = new Uint8Array(outLength);
 		this.outPos = outLength;
@@ -19,8 +16,7 @@ export class BitWriter {
 	/** copy length bytes from the reader */
 	public copyRawData(length: number) {
 		if (this.outPos - length < 0) {
-			this.log.log("copyRawData: out of out buffer");
-			return;
+			throw new RangeError('Raw data exceeds the decompressed output size');
 		}
 
 		for (; length > 0; length--) {
@@ -37,14 +33,12 @@ export class BitWriter {
 
 		/// is offset in range?
 		if (this.outPos + offset > this.outData.length) {
-			this.log.log("copyReferencedData: offset out of range");
-			return;
+			throw new RangeError('Compressed data references bytes outside the output buffer');
 		}
 
 		/// is length in range
 		if (this.outPos - length < 0) {
-			this.log.log("copyReferencedData: out of out buffer");
-			return;
+			throw new RangeError('Referenced data exceeds the decompressed output size');
 		}
 
 		for (; length > 0; length--) {

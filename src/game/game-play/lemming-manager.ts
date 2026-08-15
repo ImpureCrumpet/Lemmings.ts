@@ -207,8 +207,13 @@ import { TriggerManager } from './trigger-manager';
         }
 
         /** return the lemming with a given id */
-        public getLemming(id:number): Lemming {
+        public getLemming(id:number): Lemming | undefined {
             return this.lemmings[id];
+        }
+
+        /** Return a read-only view used by diagnostics and deterministic replay checks. */
+        public getLemmings(): readonly Lemming[] {
+            return this.lemmings;
         }
 
         /** return a lemming at a given position */
@@ -220,6 +225,10 @@ import { TriggerManager } from './trigger-manager';
 
             for (let i = 0; i < lems.length; i++) {
                 const lem = lems[i];
+
+                if (lem.isRemoved() || lem.isDisabled()) {
+                    continue;
+                }
 
                 const distance = lem.getClickDistance(x, y);
                 //console.log("--> "+ distance);
@@ -262,7 +271,7 @@ import { TriggerManager } from './trigger-manager';
 
         /** change the action a Lemming is doing */
         public doLemmingAction(lem: Lemming, skillType: SkillTypes): boolean {
-            if (lem == null) {
+            if (lem == null || lem.isRemoved() || lem.isDisabled()) {
                 return false;
             }
 
@@ -287,4 +296,3 @@ import { TriggerManager } from './trigger-manager';
             this.nextNukingLemmingsIndex = 0;
         }
     }
-

@@ -4,7 +4,7 @@ import { Game } from '@/game/game';
 export interface ICommand {
 
     /** load parameters for this command from serializer */
-    load(values: number[]): void;
+    load(values: number[]): boolean;
 
     /** save parameters of this command to serializer */
     save(): number[];
@@ -14,4 +14,3 @@ export interface ICommand {
 
     getCommandKey(): string;
 }
-
