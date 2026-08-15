@@ -35,6 +35,10 @@ const level = shallowRef<Level>();
 
 let gameEndTimeout: number | undefined;
 
+function syncGameVisibility(): void {
+  game.value?.getGameTimer().setPageVisible(document.visibilityState !== 'hidden');
+}
+
 function reportLoadError(error: unknown): void {
   loadError.value = error instanceof Error
     ? error.message
@@ -45,7 +49,7 @@ async function start(replayString?: string): Promise<void> {
   level.value = undefined;
 
   if (game.value) {
-    game.value.getGameTimer().continue();
+    game.value.getGameTimer().resume();
     return;
   }
 
@@ -78,6 +82,7 @@ async function start(replayString?: string): Promise<void> {
   }
 
   nextGame.getGameTimer().speedFactor = gameSpeedFactor.value;
+  nextGame.getGameTimer().setPageVisible(document.visibilityState !== 'hidden');
   nextGame.onGameEnd.on(onGameEnd);
   nextGame.start();
 
@@ -255,6 +260,8 @@ async function loadLevel(): Promise<void> {
 }
 
 onMounted(() => {
+  document.addEventListener('visibilitychange', syncGameVisibility);
+
   if (!gameCanvas.value) {
     return;
   }
@@ -278,6 +285,8 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  document.removeEventListener('visibilitychange', syncGameVisibility);
+
   if (gameEndTimeout !== undefined) {
     window.clearTimeout(gameEndTimeout);
   }

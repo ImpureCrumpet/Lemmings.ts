@@ -19,7 +19,7 @@ Use `npm run test:watch` while developing a regression case.
 - `tests/fixtures/gameplay-fixtures.ts` creates a small in-memory level, deterministic tick advancement, stub animation data, and synthetic terrain masks.
 - `tests/unit/binary-parsers.spec.ts` covers cursor behaviour, bounded views, decompression, checksums, and malformed containers.
 - `tests/unit/level-parsers.spec.ts` covers level metadata, odd-table alternatives, truncation, and configured level ordering.
-- `tests/unit/gameplay-state.spec.ts` covers the logical timer, skill inventory, release conditions, and terrain bounds.
+- `tests/unit/gameplay-state.spec.ts` covers the logical timer at 30, 60, 120, irregular, and throttled frame rates; pause and visibility lifecycle; skill inventory; release conditions; and terrain bounds.
 - `tests/unit/skill-actions.spec.ts` covers permanent, timed, constructive, destructive, movement, blocker, and terminal actions.
 - `tests/unit/replay.spec.ts` verifies tick-zero playback, multiple commands at one tick, canonical serialization, malformed input, and repeatable state snapshots.
 
@@ -32,6 +32,8 @@ Do not copy byte ranges from an original game file into a committed fixture. Set
 ## Adding a gameplay regression
 
 Create a level with `buildSyntheticLevel`, then add only the ground pixels required for the behaviour. Advance simulation by calling `tick()` or `advanceTicks`; tests must never wait for `setTimeout`, `setInterval`, animation frames, audio, or a real clock.
+
+Scheduler tests use an injected `FrameScheduler` and supply synthetic animation timestamps. Keep the logical step fixed at 60 milliseconds, assert tick counts independently from render counts, and include lifecycle assertions that only one frame remains scheduled.
 
 For a terrain-changing skill, assert representative ground pixels immediately before and after the action frame. For a state transition, assert both the returned `LemmingStateType` and any durable state such as position, inventory, survivor count, or removal status.
 

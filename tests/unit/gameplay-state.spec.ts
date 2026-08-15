@@ -1,15 +1,36 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { CommandNuke } from '@/game/game-play/commands/command-nuke';
 import { GameSkills } from '@/game/game-play/game-skills';
-import { GameTimer } from '@/game/game-play/game-timer';
+import { GameTimer, type FrameScheduler } from '@/game/game-play/game-timer';
 import { GameVictoryCondition } from '@/game/game-play/game-victory-condition';
 import { SkillTypes } from '@/game/game-play/skill-types';
 import { GameStateTypes } from '@/game/game-state-types';
 import { advanceTicks, buildSyntheticGame, buildSyntheticLevel } from '../fixtures/gameplay-fixtures';
 
-afterEach(() => {
-  vi.useRealTimers();
-});
+class TestFrameScheduler implements FrameScheduler {
+  private nextFrameId = 1;
+  private callbacks = new Map<number, (timestamp: number) => void>();
+
+  requestFrame(callback: (timestamp: number) => void): number {
+    const frameId = this.nextFrameId++;
+    this.callbacks.set(frameId, callback);
+    return frameId;
+  }
+
+  cancelFrame(frameId: number): void {
+    this.callbacks.delete(frameId);
+  }
+
+  frame(timestamp: number): void {
+    const callbacks = [...this.callbacks.values()];
+    this.callbacks.clear();
+    callbacks.forEach((callback) => callback(timestamp));
+  }
+
+  get pendingFrameCount(): number {
+    return this.callbacks.size;
+  }
+}
 
 describe('GameTimer', () => {
   it('advances exact logical ticks without using wall-clock time', () => {
@@ -27,31 +48,132 @@ describe('GameTimer', () => {
     expect(timer.getGameLeftTimeString()).toBe('0-59');
   });
 
-  it('rejects speed factors that cannot produce a valid timer interval', () => {
+  it('rejects invalid speed factors', () => {
     const timer = new GameTimer(buildSyntheticLevel());
     expect(() => { timer.speedFactor = 0; }).toThrow(/greater than zero/);
     expect(() => { timer.speedFactor = Number.NaN; }).toThrow(/greater than zero/);
     expect(timer.speedFactor).toBe(1);
   });
 
-  it('suspends, continues, and toggles without leaking an active interval', () => {
-    vi.useFakeTimers();
-    const timer = new GameTimer(buildSyntheticLevel());
+  it('suspends, continues, and toggles without leaking an animation frame', () => {
+    const scheduler = new TestFrameScheduler();
+    const timer = new GameTimer(buildSyntheticLevel(), scheduler);
 
     timer.continue();
     timer.continue();
     expect(timer.isRunning()).toBe(true);
-    expect(vi.getTimerCount()).toBe(1);
+    expect(scheduler.pendingFrameCount).toBe(1);
 
     timer.toggle();
     expect(timer.isRunning()).toBe(false);
-    expect(vi.getTimerCount()).toBe(0);
+    expect(scheduler.pendingFrameCount).toBe(0);
 
     timer.toggle();
     expect(timer.isRunning()).toBe(true);
     timer.stop();
     expect(timer.isRunning()).toBe(false);
-    expect(vi.getTimerCount()).toBe(0);
+    expect(scheduler.pendingFrameCount).toBe(0);
+  });
+
+  it.each([30, 60, 120])('advances the same logical ticks at %i Hz', (refreshRate) => {
+    const scheduler = new TestFrameScheduler();
+    const timer = new GameTimer(buildSyntheticLevel(), scheduler);
+    const renderFrame = vi.fn();
+    timer.onRenderFrame.on(renderFrame);
+    timer.continue();
+
+    const frameCount = Math.round(refreshRate * 0.6);
+    for (let frameIndex = 0; frameIndex <= frameCount; frameIndex++) {
+      scheduler.frame(frameIndex * 600 / frameCount);
+    }
+
+    expect(timer.getGameTicks()).toBe(10);
+    expect(renderFrame).toHaveBeenCalledTimes(frameCount + 1);
+    expect(scheduler.pendingFrameCount).toBe(1);
+  });
+
+  it('renders once after irregular frames and caps long-frame catch-up work', () => {
+    const scheduler = new TestFrameScheduler();
+    const timer = new GameTimer(buildSyntheticLevel(), scheduler);
+    const ticksAtRender: number[] = [];
+    timer.onRenderFrame.on(() => ticksAtRender.push(timer.getGameTicks()));
+    timer.continue();
+
+    scheduler.frame(0);
+    scheduler.frame(20);
+    scheduler.frame(75);
+    scheduler.frame(1_075);
+    scheduler.frame(1_135);
+
+    expect(ticksAtRender).toEqual([0, 0, 1, 6, 7]);
+  });
+
+  it('applies speed changes without duplicating the active loop', () => {
+    const scheduler = new TestFrameScheduler();
+    const timer = new GameTimer(buildSyntheticLevel(), scheduler);
+    timer.continue();
+    scheduler.frame(0);
+
+    timer.speedFactor = 2;
+    scheduler.frame(120);
+
+    expect(timer.getGameTicks()).toBe(4);
+    expect(scheduler.pendingFrameCount).toBe(1);
+  });
+
+  it('pauses logical time while hidden and resumes only a previously running loop', () => {
+    const scheduler = new TestFrameScheduler();
+    const timer = new GameTimer(buildSyntheticLevel(), scheduler);
+    timer.continue();
+    scheduler.frame(0);
+    scheduler.frame(30);
+
+    timer.setPageVisible(false);
+    expect(scheduler.pendingFrameCount).toBe(0);
+    timer.setPageVisible(true);
+    scheduler.frame(10_000);
+    scheduler.frame(10_030);
+
+    expect(timer.getGameTicks()).toBe(1);
+    expect(scheduler.pendingFrameCount).toBe(1);
+
+    timer.suspend();
+    timer.setPageVisible(false);
+    timer.setPageVisible(true);
+    expect(scheduler.pendingFrameCount).toBe(0);
+  });
+
+  it('does not restart when a logical tick suspends the loop', () => {
+    const scheduler = new TestFrameScheduler();
+    const timer = new GameTimer(buildSyntheticLevel(), scheduler);
+    timer.onGameTick.on(() => timer.suspend());
+    timer.continue();
+
+    scheduler.frame(0);
+    scheduler.frame(60);
+
+    expect(timer.getGameTicks()).toBe(1);
+    expect(timer.isRunning()).toBe(false);
+    expect(scheduler.pendingFrameCount).toBe(0);
+  });
+
+  it('wires multiple simulation steps to one render through Game', () => {
+    const scheduler = new TestFrameScheduler();
+    const game = buildSyntheticGame({}, scheduler);
+    const simulationStep = vi.spyOn(game.getLemmingManager(), 'tick');
+    const render = vi.spyOn(game as unknown as { render(): void }, 'render');
+    game.start();
+
+    scheduler.frame(0);
+    simulationStep.mockClear();
+    render.mockClear();
+    scheduler.frame(120);
+
+    expect(game.getGameTimer().getGameTicks()).toBe(2);
+    expect(simulationStep).toHaveBeenCalledTimes(2);
+    expect(render).toHaveBeenCalledTimes(1);
+    expect(scheduler.pendingFrameCount).toBe(1);
+    game.stop();
   });
 });
 

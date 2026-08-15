@@ -4,7 +4,7 @@ import { GameStateTypes } from './game-state-types';
 import type { ICommand } from './game-play/commands/command';
 import { CommandManager } from './game-play/commands/command-manager';
 import { GameSkills } from './game-play/game-skills';
-import { GameTimer } from './game-play/game-timer';
+import { GameTimer, type FrameScheduler } from './game-play/game-timer';
 import { GameVictoryCondition } from './game-play/game-victory-condition';
 import { LemmingManager } from './game-play/lemming-manager';
 import { ObjectManager } from './game-play/object-manager';
@@ -51,10 +51,11 @@ export class Game {
         level: Level,
         masks: MaskProvider, 
         lemSprite: LemmingsSprite,
-        skillPanelSprites: SkillPanelSprites
+        skillPanelSprites: SkillPanelSprites,
+        frameScheduler?: FrameScheduler,
      ) {
 
-        this.gameTimer = new GameTimer(level);
+        this.gameTimer = new GameTimer(level, frameScheduler);
         this.skills = new GameSkills(level);
 
         this.level = level;
@@ -64,7 +65,11 @@ export class Game {
         this.commandManager = new CommandManager(this, this.gameTimer);
 
         this.gameTimer.onGameTick.on(() => {
-            this.onGameTimerTick()
+            this.advanceSimulation();
+        });
+
+        this.gameTimer.onRenderFrame.on(() => {
+            this.render();
         });
 
         this.triggerManager = new TriggerManager(this.gameTimer);
@@ -146,7 +151,7 @@ export class Game {
 
     /** run the game */
     public start() {
-        this.gameTimer.continue();
+        this.gameTimer.resume();
     }
 
     /** end the game */
@@ -202,13 +207,10 @@ export class Game {
         this.showDebug = vale;
     }
 
-    /** run one step in game time and render the result */
-    private onGameTimerTick() {
-
-        /// run game logic
+    /** Advance the simulation by one fixed logical step. */
+    private advanceSimulation() {
         this.runGameLogic();
         this.checkForGameOver();
-        this.render();
     }
 
     /** return the current state of the game */

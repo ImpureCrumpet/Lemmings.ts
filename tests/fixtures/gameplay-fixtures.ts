@@ -10,6 +10,7 @@ import { MaskProvider } from '@/game/resources/mask-provider';
 import { Animation } from '@/game/resources/animation';
 import type { SkillPanelSprites } from '@/game/resources/skill-panel-sprites';
 import { SolidLayer } from '@/game/resources/solid-layer';
+import type { FrameScheduler } from '@/game/game-play/game-timer';
 
 export interface SyntheticLevelOptions {
   width?: number;
@@ -51,12 +52,16 @@ export function buildSyntheticLevel(options: SyntheticLevelOptions = {}): Level 
   );
 }
 
-export function buildSyntheticGame(options: SyntheticLevelOptions = {}): Game {
+export function buildSyntheticGame(
+  options: SyntheticLevelOptions = {},
+  frameScheduler?: FrameScheduler,
+): Game {
   return new Game(
     buildSyntheticLevel(options),
     createFilledMaskProvider(),
     createStubSprites(),
     {} as SkillPanelSprites,
+    frameScheduler,
   );
 }
 
