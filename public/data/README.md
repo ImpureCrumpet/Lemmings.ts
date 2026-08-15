@@ -1,23 +1,16 @@
-# Lemmings.ts
+# Original game-data placeholders
 
-this is a Lemmings clone written in JavaScript (more precisely in TypeScript a dialectal of JavaScript). 
+No original Lemmings data is distributed here. For local development or a
+self-hosted copy, place legally obtained files in the edition directory named
+by `config.json`, preserving the filenames listed in each directory's README.
 
+Run the app through its development or preview server, open **Set up original
+game files**, and select **Check static folder** for the edition. The checklist
+distinguishes missing, wrong-edition, unreadable, HTML-fallback, and corrupt
+files. A size difference is a warning because legitimate regional builds may
+vary.
 
-## Binaries are missing
-You should be able to play all level of the game but before you can do so, you need to copy the original
- data-files of all Lemmings variants to the respective folders e.g. "lemming", "lemming_Holiday93", ...
+Players who cannot write to these directories can select a folder in the setup
+screen instead. Those files stay inside the browser and are never uploaded.
 
-If you don't want to play one of this variants or you don't have the data-files you may need to disable 
- this Lemmings-variant in the ´config.json´.
-
-
-## start the game
-To start the game, just open the ´lemmings.html´ file.
-
-
-## Report bugs
-If you have problems playing the game feel free to report a bug at (https://github.com/tomsoftware/Lemmings.ts/issues)
-
-
-
-Have fun!
+See `docu/GAME-DATA-SETUP.md` in the repository for full instructions.

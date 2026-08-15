@@ -1,6 +1,6 @@
 import { GameConfig } from './config/game-config';
 import { FileContainer } from './resources/file/file-container';
-import { FileProvider } from './resources/file/file-provider';
+import type { ResourceDataSource } from './resources/file/resource-data-source';
 import { MainImageSprites } from './resources/main-image-sprites';
 import { LemmingsSprite } from './resources/lemmings-sprite';
 import { ColorPalette } from './resources/lemmings/color-palette';
@@ -23,7 +23,7 @@ export class GameResources {
     private soundImage: Promise<SoundImageManager> | null = null;
     private mainDat: Promise<FileContainer> | null = null;
 
-    constructor(private fileProvider: FileProvider, private config: GameConfig) {
+    constructor(private fileProvider: ResourceDataSource, private config: GameConfig) {
 
     }
 

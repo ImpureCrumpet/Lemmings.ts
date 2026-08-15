@@ -2,7 +2,7 @@ import { GameConfig } from '../config/game-config';
 import { LogHandler } from '../utilities/log-handler';
 import { BinaryReader } from './file/binary-reader';
 import { FileContainer } from './file/file-container';
-import { FileProvider } from './file/file-provider';
+import type { ResourceDataSource } from './file/resource-data-source';
 import { GroundRenderer } from './ground-renderer';
 import { GroundReader } from './lemmings/ground-reader';
 import { LevelReader } from './lemmings/level-reader';
@@ -18,7 +18,7 @@ export class LevelLoader {
     private levelIndexResolve: LevelIndexResolve;
 
 
-    constructor(private fileProvider: FileProvider, private config: GameConfig) {
+    constructor(private fileProvider: ResourceDataSource, private config: GameConfig) {
         this.levelIndexResolve = new LevelIndexResolve(config);
     }
 
@@ -126,4 +126,3 @@ export class LevelLoader {
     }
 
 }
-

@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router';
 import MainView from '@/views/main-view.vue';
 import GameView from '@/views/game-view.vue';
+import DataSetupView from '@/views/data-setup-view.vue';
 
 const routes: RouteRecordRaw[] = [
   {
@@ -12,6 +13,11 @@ const routes: RouteRecordRaw[] = [
     path: '/game/:gameType',
     name: 'game',
     component: GameView
+  },
+  {
+    path: '/setup',
+    name: 'setup',
+    component: DataSetupView,
   }
 ];
 

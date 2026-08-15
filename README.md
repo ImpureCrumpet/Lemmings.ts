@@ -11,14 +11,16 @@ A Web Lemmings Clone/Remake in TypeScript - 🎉 Yes it's 100% JavaScript 🎉
 * Read original Lemmings binaries on the fly
 * Support playing of original music by interpreting the adlib.dat file and using an Adlib emulator(s) (DosBox)
 
-## ToDo
-* fix some game issues
-* touch support
-
 ## How to run
-* download the *Lemmings.ts.zip* from [releases](https://github.com/tomsoftware/Lemmings.ts/releases)
-* copy the original *Lemmings*, *OhNo* and *Holiday* binaries into the directory **run/{version}/**
-* start *lemmings.html* - because of security restrictions you may need to call the lemmings.html via a webserver e.g. [nginx](https://www.nginx.com/)
+
+Lemmings.ts runs in a browser through a local or hosted web server. Open
+**Set up original game files** in the app and either choose an edition folder
+from your device or use the self-hosted `public/data/<edition>/` folders. The
+setup screen validates filenames and containers before play; selected files
+are not uploaded.
+
+See [docu/GAME-DATA-SETUP.md](docu/GAME-DATA-SETUP.md) for supported editions,
+browser fallbacks, and the manual-copy layout.
 
 
 
@@ -52,7 +54,9 @@ and privacy details.
 * press *Ctrl+Shift+B* to start the development server
 * use *F5* to run the debugger
 
-The original DOS game data is not distributed with this repository. Copy your legally obtained files into the corresponding `public/data/<version>/` directory before launching the game.
+The original DOS game data is not distributed with this repository. Use the
+in-app setup screen with legally obtained files, or copy them into the matching
+`public/data/<edition>/` directory for local development and self-hosting.
 
 Distribution boundaries, release checks, and the current private-repository
 policy are documented in [docu/DISTRIBUTION.md](docu/DISTRIBUTION.md). Dependency

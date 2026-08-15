@@ -32,6 +32,11 @@ not covered by the repository license and must remain outside commits and
 release artifacts. `.gitignore` excludes the expected local files, while
 `npm run audit:release` independently inspects a fresh production build.
 
+The in-app setup flow reads a player-selected folder locally and stores only a
+browser permission handle when supported. It has no upload or analytics
+endpoint. Setup methods, validation behaviour, recovery, and self-hosted
+placement are documented in `docu/GAME-DATA-SETUP.md`.
+
 The absence of current commercial support or an informal "abandonware" label
 does not grant redistribution rights. Players must provide files from a copy
 they are legally entitled to use.

@@ -1,11 +1,19 @@
 import { LogHandler } from '@/game/utilities/log-handler';
 import { Frame } from '../frame';
 import { BinaryReader } from './binary-reader';
+import {
+  DataSourceError,
+  isHtmlDocument,
+  type ResourceDataSource,
+} from './resource-data-source';
 
 /**
 * Handle Files loading from remote/web
 */
-export class FileProvider {
+export class FileProvider implements ResourceDataSource {
+
+  public readonly kind = 'http' as const;
+  public readonly label = 'static data folder';
 
   private log: LogHandler = new LogHandler('FileProvider');
 
@@ -29,16 +37,35 @@ export class FileProvider {
 
     const response = await fetch(url);
     if (!response.ok) {
-      throw new Error(`Unable to load ${url}: ${response.status} ${response.statusText}`);
+      throw new DataSourceError(
+        response.status === 404 ? 'missing' : 'unreadable',
+        filename ?? this.fileNameFormUrl(url),
+        response.status === 404
+          ? `${filename ?? this.fileNameFormUrl(url)} is missing from the static data folder.`
+          : `Unable to read ${filename ?? this.fileNameFormUrl(url)} (${response.status} ${response.statusText}).`,
+      );
     }
 
     const contentType = response.headers.get('content-type') ?? '';
     if (contentType.includes('text/html')) {
-      throw new Error(`Game data file not found: ${url}`);
+      throw new DataSourceError(
+        'html-fallback',
+        filename ?? this.fileNameFormUrl(url),
+        `${filename ?? this.fileNameFormUrl(url)} returned a web page instead of game data.`,
+      );
+    }
+
+    const data = await response.arrayBuffer();
+    if (isHtmlDocument(data)) {
+      throw new DataSourceError(
+        'html-fallback',
+        filename ?? this.fileNameFormUrl(url),
+        `${filename ?? this.fileNameFormUrl(url)} returned a web page instead of game data.`,
+      );
     }
 
     return new BinaryReader(
-      await response.arrayBuffer(),
+      data,
       0,
       null,
       this.fileNameFormUrl(url),
@@ -55,7 +82,11 @@ export class FileProvider {
 
     const response = await fetch(url);
     if (!response.ok) {
-      throw new Error(`Unable to load ${url}: ${response.status} ${response.statusText}`);
+      throw new DataSourceError(
+        response.status === 404 ? 'missing' : 'unreadable',
+        filename ?? this.fileNameFormUrl(url),
+        `Unable to read ${filename ?? this.fileNameFormUrl(url)} (${response.status} ${response.statusText}).`,
+      );
     }
 
     return response.text();
@@ -71,7 +102,11 @@ export class FileProvider {
     }
 
     if (!response.ok) {
-      throw new Error(`Unable to load ${url}: ${response.status} ${response.statusText}`);
+      throw new DataSourceError(
+        'unreadable',
+        filename,
+        `Unable to read ${filename} (${response.status} ${response.statusText}).`,
+      );
     }
 
     const contentType = response.headers.get('content-type') ?? '';

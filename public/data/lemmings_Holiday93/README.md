@@ -1,16 +1,18 @@
 # Lemmings Binary
-Add the original "Holiday Lemmings 1993" files here
 
+Add the original "Holiday Lemmings 1993" files here.
 
-| Filename     	| Size        	|
-| -------------	|-------------:|
-| adlib.dat	|       3.597	|
-| greet.dat	|         252	|
-| ground1o.dat	|       1.056	|
-| ground2o.dat	|       1.056	|
-| install.exe	|      16.157	|
-| level000.dat	|       3.143	|
-| level001.dat	|       2.868	|
-| level002.dat	|       3.033	|
-| level003.dat	|       5.654	|
-| main.dat	|      59.775	|
+| Filename | Size |
+| --- | ---: |
+| ADLIB.DAT | 3.597 |
+| GREET.DAT | 252 |
+| GROUND1O.DAT | 1.056 |
+| GROUND2O.DAT | 1.056 |
+| INSTALL.EXE | 16.157 |
+| LEVEL000.DAT | 3.143 |
+| LEVEL001.DAT | 2.868 |
+| LEVEL002.DAT | 3.033 |
+| LEVEL003.DAT | 5.654 |
+| MAIN.DAT | 59.775 |
+| VGAGR1.DAT | 25.902 |
+| VGAGR2.DAT | 33.123 |

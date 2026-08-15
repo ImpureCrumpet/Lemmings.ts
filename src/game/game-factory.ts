@@ -3,6 +3,10 @@ import { Game } from './game';
 import { GameResources } from './game-resources';
 import { GameTypes } from './game-types';
 import { FileProvider } from './resources/file/file-provider';
+import type {
+    ResourceDataSource,
+    ResourceDataSourceResolver,
+} from './resources/file/resource-data-source';
 import { ConfigReader } from './utilities/config-reader';
 
 /** loads the config and provides an game-resources object */
@@ -10,9 +14,13 @@ export class GameFactory {
 
     private configReader: ConfigReader;
     private fileProvider: FileProvider;
+    private dataSourceResolver: ResourceDataSourceResolver;
 
-    constructor(private rootPath: string) {
+    constructor(private rootPath: string, dataSourceResolver?: ResourceDataSourceResolver) {
         this.fileProvider = new FileProvider(rootPath);
+        this.dataSourceResolver = dataSourceResolver ?? {
+            resolve: (): ResourceDataSource => this.fileProvider,
+        };
 
         const configFileReader = this.fileProvider.loadString('config.json');
         this.configReader = new ConfigReader(configFileReader);
@@ -46,7 +54,7 @@ export class GameFactory {
             return;
         }
 
-        return new GameResources(this.fileProvider, config);
+        return new GameResources(this.dataSourceResolver.resolve(config.path), config);
 
 
 

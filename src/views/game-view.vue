@@ -30,10 +30,15 @@ import {
   type LevelLocation,
   type PlayerSettings,
 } from '@/game/persistence/player-storage';
+import {
+  createBrowserDataSourceResolver,
+  restoreDirectory,
+} from '@/game/data/browser-data-sources';
 
 const route = useRoute();
 const log = new LogHandler('GameView');
-const gameFactory = new GameFactory(`${import.meta.env.BASE_URL}data`);
+const dataRoot = `${import.meta.env.BASE_URL}data`;
+const gameFactory = new GameFactory(dataRoot, createBrowserDataSourceResolver(dataRoot));
 const playerStorage = createBrowserPlayerStorage();
 const initialSettings = playerStorage.loadSettings();
 
@@ -678,6 +683,7 @@ async function selectGameType(selectedGameType: GameTypes): Promise<void> {
     }
     gameConfig.value = config;
     restoreSavedLocation(config);
+    await restoreDirectory(config.path);
 
     const resources = await gameFactory.getGameResources(selectedGameType);
     if (!resources) {
@@ -781,7 +787,10 @@ onBeforeUnmount(() => {
       class="loadError"
       role="alert"
     >
-      {{ loadError }} Copy your original Lemmings data files into the matching public/data folder.
+      {{ loadError }}
+      <router-link to="/setup">
+        Set up or check game files.
+      </router-link>
     </p>
 
     <canvas
@@ -1404,6 +1413,10 @@ onBeforeUnmount(() => {
     background: #240000;
     color: #ffb3b3;
     border: 1px solid #b00020;
+  }
+
+  .loadError a {
+    color: #baffb5;
   }
 
   .audioStatus {

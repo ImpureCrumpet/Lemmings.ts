@@ -23,6 +23,9 @@ Use `npm run test:watch` while developing a regression case.
 - `tests/unit/skill-actions.spec.ts` covers permanent, timed, constructive, destructive, movement, blocker, and terminal actions.
 - `tests/unit/replay.spec.ts` verifies tick-zero playback, multiple commands at one tick, canonical serialization, malformed input, and repeatable state snapshots.
 - `tests/unit/audio.spec.ts` verifies device-rate command timing, exact sample boundaries, deterministic OPL output, worklet command transport, autoplay failure, volume, and disposal.
+- `tests/unit/data-file-setup.spec.ts` covers local case-aware lookup, HTML
+  fallbacks, missing and mixed sets, wrong-edition detection, known-size
+  warnings, and corrupt container reporting without commercial files.
 
 ## Adding a parser regression
 

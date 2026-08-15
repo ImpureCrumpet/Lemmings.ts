@@ -5,9 +5,14 @@ import { GameTypes, GameTypesHelper } from '@/game/game-types';
 import type { GameResources } from '@/game/game-resources';
 import { createBrowserPlayerStorage } from '@/game/persistence/player-storage';
 import { LogHandler } from '@/game/utilities/log-handler';
+import {
+  createBrowserDataSourceResolver,
+  restoreDirectory,
+} from '@/game/data/browser-data-sources';
 
 const log = new LogHandler('MainView');
-const gameFactory = new GameFactory(`${import.meta.env.BASE_URL}data`);
+const dataRoot = `${import.meta.env.BASE_URL}data`;
+const gameFactory = new GameFactory(dataRoot, createBrowserDataSourceResolver(dataRoot));
 const playerStorage = createBrowserPlayerStorage();
 
 const levelIndex = ref(0);
@@ -55,6 +60,10 @@ async function selectGameType(moveValue = 0): Promise<void> {
 
   log.log(`game type: ${gameType.value}`);
   try {
+    const config = await gameFactory.getConfig(gameType.value);
+    if (config) {
+      await restoreDirectory(config.path);
+    }
     const resources = await gameFactory.getGameResources(gameType.value);
     if (!resources) {
       log.log('Unable to get game resources');
@@ -106,8 +115,18 @@ onMounted(() => {
         class="loadError"
         role="alert"
       >
-        {{ loadError }} Copy your original Lemmings data files into the matching public/data folder.
+        {{ loadError }}
+        <router-link to="/setup">
+          Set up or check game files.
+        </router-link>
       </p>
+
+      <router-link
+        class="setupLink"
+        to="/setup"
+      >
+        Set up original game files
+      </router-link>
 
       <img
         :src="logo"
@@ -218,6 +237,16 @@ onMounted(() => {
     background: #240000;
     color: #ffb3b3;
     border: 1px solid #b00020;
+  }
+
+  .loadError a,
+  .setupLink {
+    color: #baffb5;
+  }
+
+  .setupLink {
+    display: block;
+    margin: 0.5rem;
   }
 
   .switch {
