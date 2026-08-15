@@ -94,12 +94,11 @@ export class OPL implements IOpl3 {
 		if (lenSamples > 512) {
 			throw new Error('OPL.generate() cannot generate more than 512 samples per call');
 		}
-		if (lenSamples < 2) {
-			throw new Error('OPL.generate() cannot generate fewer than 2 samples per call');
+		if (lenSamples < 1) {
+			throw new Error('OPL.generate() requires at least one sample');
 		}
 		this.dbopl.Generate(this.mixer, lenSamples);
 
 		return this.buffer;
 	}
 }
-

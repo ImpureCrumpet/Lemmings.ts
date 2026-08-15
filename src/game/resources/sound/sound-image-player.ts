@@ -3,6 +3,15 @@ import { LogHandler } from '@/game/utilities/log-handler';
 import { BinaryReader } from '../file/binary-reader';
 import { SoundImageChannels } from './sound-image-channel';
 
+export type SoundImageTrackType = 'music' | 'sound';
+
+export interface SoundImagePlaybackData {
+  data: ArrayBuffer;
+  audioConfig: AudioConfig;
+  trackType: SoundImageTrackType;
+  trackIndex: number;
+}
+
 
 /** interface for data callback - returns a OPC command from the SoundImage format */
 export interface AdlibCommandCallback { (reg: number, value: number): void }
@@ -21,6 +30,9 @@ export class SoundImagePlayer {
 
   /** Config for this soundImage file */
   private fileConfig: AudioConfig;
+
+  private trackType: SoundImageTrackType | null = null;
+  private trackIndex = 0;
 
   /** how many channels does the current track uses */
   private channelCount = 0;
@@ -56,6 +68,10 @@ export class SoundImagePlayer {
     this.channelCount = 0;
     this.waitCycles = 0;
     this.sampleRateFactor = 0x4300;
+    this.currentCycle = 0;
+    this.initCommandsDone = false;
+    this.trackType = 'sound';
+    this.trackIndex = soundIndex;
 
     /// check if valid
     if ((soundIndex < 0) || (soundIndex > 17)) return;
@@ -83,6 +99,10 @@ export class SoundImagePlayer {
     ///- reset
     this.channels = [];
     this.channelCount = 0;
+    this.currentCycle = 0;
+    this.initCommandsDone = false;
+    this.trackType = 'music';
+    this.trackIndex = musicIndex;
 
     /// check if valid
     if (musicIndex < 0) return;
@@ -115,6 +135,39 @@ export class SoundImagePlayer {
     }
 
     this.debug();
+  }
+
+  /** Create the structured-clone payload used to rebuild this track in a worklet. */
+  public createPlaybackData(): SoundImagePlaybackData {
+    if (!this.trackType) {
+      throw new Error('Sound Image track must be initialized before playback');
+    }
+
+    const bytes = this.reader.toUint8Array();
+    const data = new ArrayBuffer(bytes.byteLength);
+    new Uint8Array(data).set(bytes);
+    return {
+      data,
+      audioConfig: { ...this.fileConfig },
+      trackType: this.trackType,
+      trackIndex: this.trackIndex,
+    };
+  }
+
+  /** Rebuild a fresh interpreter from a main-thread structured-clone payload. */
+  public static fromPlaybackData(playback: SoundImagePlaybackData): SoundImagePlayer {
+    const player = new SoundImagePlayer(
+      new BinaryReader(playback.data),
+      Object.assign(new AudioConfig(), playback.audioConfig),
+    );
+
+    if (playback.trackType === 'music') {
+      player.initMusic(playback.trackIndex);
+    } else {
+      player.initSound(playback.trackIndex);
+    }
+
+    return player;
   }
 
 
@@ -226,4 +279,3 @@ export class SoundImagePlayer {
   }
 
 }
-

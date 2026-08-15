@@ -7,7 +7,7 @@ import type { GameResources } from '@/game/game-resources';
 import type { GameResult } from '@/game/game-result';
 import { GameStateTypeHelper, GameStateTypes } from '@/game/game-state-types';
 import { GameTypes, GameTypesHelper } from '@/game/game-types';
-import type { AudioPlayer } from '@/game/resources/sound/audio-player';
+import type { AudioPlayer, AudioPlayerState } from '@/game/resources/sound/audio-player';
 import type { Level } from '@/game/resources/level';
 import { LogHandler } from '@/game/utilities/log-handler';
 import { Stage } from '@/game/view/stage';
@@ -25,6 +25,7 @@ const soundIndex = ref(0);
 const gameState = ref('');
 const gameSpeedFactor = ref(1);
 const loadError = ref('');
+const audioStatus = ref('Audio starts after you press a Play button.');
 
 const gameResources = shallowRef<GameResources>();
 const musicPlayer = shallowRef<AudioPlayer>();
@@ -34,6 +35,30 @@ const stage = shallowRef<Stage>();
 const level = shallowRef<Level>();
 
 let gameEndTimeout: number | undefined;
+let musicRequest = 0;
+let soundRequest = 0;
+
+function describeAudioState(label: string, player: AudioPlayer, state: AudioPlayerState): string {
+  if (state === 'unavailable') {
+    return `${label} unavailable: ${player.errorMessage || 'this browser could not start audio'}`;
+  }
+  const descriptions: Record<Exclude<AudioPlayerState, 'unavailable'>, string> = {
+    idle: 'ready',
+    loading: 'starting…',
+    playing: 'playing',
+    paused: 'paused',
+    stopped: 'stopped',
+  };
+  return `${label} ${descriptions[state]}`;
+}
+
+function watchAudioState(label: string, player: AudioPlayer): void {
+  player.onStateChanged.on((state) => {
+    if (state) {
+      audioStatus.value = describeAudioState(label, player, state);
+    }
+  });
+}
 
 function syncGameVisibility(): void {
   game.value?.getGameTimer().setPageVisible(document.visibilityState !== 'hidden');
@@ -104,6 +129,7 @@ function onGameEnd(result?: GameResult): void {
 }
 
 function stopMusic(): void {
+  musicRequest++;
   musicPlayer.value?.stop();
   musicPlayer.value = undefined;
 }
@@ -114,12 +140,20 @@ async function playMusic(moveInterval = 0): Promise<void> {
     return;
   }
 
+  const request = musicRequest;
   musicIndex.value = Math.max(0, musicIndex.value + moveInterval);
-  musicPlayer.value = await gameResources.value.getMusicPlayer(musicIndex.value);
-  musicPlayer.value.play();
+  const player = gameResources.value.getMusicPlayer(musicIndex.value);
+  if (request !== musicRequest) {
+    player.stop();
+    return;
+  }
+  musicPlayer.value = player;
+  watchAudioState('Music', player);
+  await player.play();
 }
 
 function stopSound(): void {
+  soundRequest++;
   soundPlayer.value?.stop();
   soundPlayer.value = undefined;
 }
@@ -130,9 +164,16 @@ async function playSound(moveInterval = 0): Promise<void> {
     return;
   }
 
+  const request = soundRequest;
   soundIndex.value = Math.max(0, soundIndex.value + moveInterval);
-  soundPlayer.value = await gameResources.value.getSoundPlayer(soundIndex.value);
-  soundPlayer.value.play();
+  const player = gameResources.value.getSoundPlayer(soundIndex.value);
+  if (request !== soundRequest) {
+    player.stop();
+    return;
+  }
+  soundPlayer.value = player;
+  watchAudioState('Sound', player);
+  await player.play();
 }
 
 async function exportToolbarPng(): Promise<void> {
@@ -412,6 +453,14 @@ onBeforeUnmount(() => {
         ⇨
       </button>
     </div>
+
+    <p
+      class="audioStatus"
+      role="status"
+      aria-live="polite"
+    >
+      {{ audioStatus }}
+    </p>
   </main>
 </template>
 
@@ -445,6 +494,12 @@ onBeforeUnmount(() => {
     background: #240000;
     color: #ffb3b3;
     border: 1px solid #b00020;
+  }
+
+  .audioStatus {
+    margin: 0.75rem;
+    color: #ccc;
+    text-align: center;
   }
 
   .controls {

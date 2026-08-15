@@ -132,12 +132,11 @@ export class GameResources {
     }
 
     /** return a audio player to playback a music song */
-    public async getMusicPlayer(songIndex: number): Promise<AudioPlayer> {
+    public getMusicPlayer(songIndex: number): AudioPlayer {
         this.stopMusic();
 
-        const soundImage = await this.initSoundImage();
-        /// get track
-        const adlibSrc: SoundImagePlayer = soundImage.getMusicTrack(songIndex);
+        const adlibSrc: Promise<SoundImagePlayer> = this.initSoundImage()
+            .then((soundImage) => soundImage.getMusicTrack(songIndex));
 
         /// play
         this.musicPlayer = new AudioPlayer(adlibSrc);
@@ -157,14 +156,12 @@ export class GameResources {
     }
 
     /** return a player to playback a sound effect */
-    public async getSoundPlayer(soundIndex: number) {
+    public getSoundPlayer(soundIndex: number): AudioPlayer {
 
         this.stopSound();
 
-        const soundImage = await this.initSoundImage();
-
-        /// get track
-        const adlibSrc: SoundImagePlayer = soundImage.getSoundTrack(soundIndex);
+        const adlibSrc: Promise<SoundImagePlayer> = this.initSoundImage()
+            .then((soundImage) => soundImage.getSoundTrack(soundIndex));
 
         /// play
         this.soundPlayer = new AudioPlayer(adlibSrc);

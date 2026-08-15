@@ -165,6 +165,11 @@ export class BinaryReader {
     return this.readString(this.length, 0);
   }
 
+  /** Return an independent copy of this reader's visible byte range. */
+  public toUint8Array(): Uint8Array {
+    return this.data.slice(this.hiddenOffset, this.hiddenOffset + this.length);
+  }
+
   private assertAvailable(byteCount: number): void {
     const position = this.getOffset();
     if (position < 0 || position + byteCount > this.length) {

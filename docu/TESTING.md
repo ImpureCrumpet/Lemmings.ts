@@ -22,6 +22,7 @@ Use `npm run test:watch` while developing a regression case.
 - `tests/unit/gameplay-state.spec.ts` covers the logical timer at 30, 60, 120, irregular, and throttled frame rates; pause and visibility lifecycle; skill inventory; release conditions; and terrain bounds.
 - `tests/unit/skill-actions.spec.ts` covers permanent, timed, constructive, destructive, movement, blocker, and terminal actions.
 - `tests/unit/replay.spec.ts` verifies tick-zero playback, multiple commands at one tick, canonical serialization, malformed input, and repeatable state snapshots.
+- `tests/unit/audio.spec.ts` verifies device-rate command timing, exact sample boundaries, deterministic OPL output, worklet command transport, autoplay failure, volume, and disposal.
 
 ## Adding a parser regression
 
@@ -42,3 +43,16 @@ For a terrain-changing skill, assert representative ground pixels immediately be
 Replay commands use `tick=command` entries joined by `&`. Multiple commands at the same tick are legal and their insertion order is significant. A replay test should advance two fresh harnesses one logical tick at a time and compare the same public state snapshot after every tick.
 
 When a command encoding or timing rule must change, preserve the old replay string as a compatibility fixture before changing the implementation.
+
+## Audio checks
+
+The unit suite does not require speakers or commercial `ADLIB.DAT` data. It
+uses a synthetic command source for exact timing and a known OPL register
+sequence for deterministic, non-silent output. Always run the production
+build as part of audio work: Vite must emit a separate transpiled
+`audio-worklet-processor-*.js` asset rather than embedding raw TypeScript.
+
+Before a release, manually compare music and effects in current Chrome,
+Firefox, and Safari, including repeated track changes and returning from a
+background tab. Where hardware allows, cover both 44.1 kHz and 48 kHz output.
+Mobile Safari and Chrome require an explicit Play tap before audio can resume.
