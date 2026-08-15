@@ -130,6 +130,19 @@ function dispatchKeyboard(
   return event;
 }
 
+function dispatchWheel(
+  target: EventTarget,
+  values: Partial<Pick<WheelEvent, 'ctrlKey' | 'metaKey'>> = {},
+): Event {
+  const event = new Event('wheel', { cancelable: true });
+  Object.defineProperties(event, {
+    ctrlKey: { value: values.ctrlKey ?? false },
+    metaKey: { value: values.metaKey ?? false },
+  });
+  target.dispatchEvent(event);
+  return event;
+}
+
 afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
@@ -199,6 +212,9 @@ describe('named and keyboard controls', () => {
     dispatchKeyboard(target, { code: 'KeyP' });
     expect(actions).toHaveBeenCalledOnce();
     expect(actions).toHaveBeenLastCalledWith('toggle-pause');
+    const browserZoom = dispatchKeyboard(target, { code: 'Equal', metaKey: true });
+    expect(browserZoom.defaultPrevented).toBe(false);
+    expect(actions).toHaveBeenCalledOnce();
     controls.dispose();
     dispatchKeyboard(target, { code: 'KeyP' });
     expect(actions).toHaveBeenCalledOnce();
@@ -270,6 +286,20 @@ describe('named and keyboard controls', () => {
 });
 
 describe('pointer input', () => {
+  it('allows wheel scrolling but suppresses wheel and pinch zoom gestures', () => {
+    const element = new FakePointerElement();
+    const input = new UserInputManager(element as unknown as HTMLElement);
+
+    expect(dispatchWheel(element).defaultPrevented).toBe(false);
+    expect(dispatchWheel(element, { ctrlKey: true }).defaultPrevented).toBe(true);
+    expect(dispatchWheel(element, { metaKey: true }).defaultPrevented).toBe(true);
+
+    const safariPinch = new Event('gesturechange', { cancelable: true });
+    element.dispatchEvent(safariPinch);
+    expect(safariPinch.defaultPrevented).toBe(true);
+    input.dispose();
+  });
+
   it('captures one pointer and emits a tap only when it did not become a drag', () => {
     const element = new FakePointerElement();
     const input = new UserInputManager(element as unknown as HTMLElement);

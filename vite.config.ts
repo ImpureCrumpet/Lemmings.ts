@@ -62,6 +62,8 @@ export default defineConfig({
     },
   },
   build: {
+    // Keep browser support intentional when Vite changes its rolling default.
+    target: ['chrome111', 'edge111', 'firefox114', 'safari16.4', 'ios16.4'],
     // The dev server exposes player-supplied data from public/. Production
     // builds deliberately copy only the placeholders above.
     copyPublicDir: false,

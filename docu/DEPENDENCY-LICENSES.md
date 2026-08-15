@@ -47,7 +47,7 @@ are not repeated here because they are not shipped in the browser build.
 | Package | Locked version | Declared license | Relationship |
 | --- | --- | --- | --- |
 | [@eslint/js](https://registry.npmjs.org/@eslint/js/-/js-10.0.1.tgz) | 10.0.1 | MIT | direct development |
-| [@types/node](https://registry.npmjs.org/@types/node/-/node-26.2.0.tgz) | 26.2.0 | MIT | direct development |
+| [@types/node](https://registry.npmjs.org/@types/node/-/node-24.13.3.tgz) | 24.13.3 | MIT | direct development |
 | [@vitejs/plugin-vue](https://registry.npmjs.org/@vitejs/plugin-vue/-/plugin-vue-6.0.8.tgz) | 6.0.8 | MIT | direct development |
 | [eslint](https://registry.npmjs.org/eslint/-/eslint-10.8.1.tgz) | 10.8.1 | MIT | direct development |
 | [eslint-plugin-vue](https://registry.npmjs.org/eslint-plugin-vue/-/eslint-plugin-vue-10.10.0.tgz) | 10.10.0 | MIT | direct development |

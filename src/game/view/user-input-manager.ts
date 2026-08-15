@@ -27,12 +27,6 @@ export class PointerMoveEventArguments extends Position2D {
     }
 }
 
-export class ZoomEventArguments extends Position2D {
-    public constructor(x = 0, y = 0, public deltaZoom = 0) {
-        super(x, y);
-    }
-}
-
 /** Handles mouse, touch, and pen through one captured Pointer Events path. */
 export class UserInputManager {
     private readonly eventController = new AbortController();
@@ -51,7 +45,6 @@ export class UserInputManager {
     public onTap = new EventHandler<Position2D>();
     public onPointerCancel = new EventHandler<void>();
     public onDoubleClick = new EventHandler<Position2D>();
-    public onZoom = new EventHandler<ZoomEventArguments>();
 
     public constructor(private readonly listenElement: HTMLElement) {
         const eventOptions = { signal: this.eventController.signal };
@@ -158,13 +151,17 @@ export class UserInputManager {
         }, activeEventOptions);
 
         listenElement.addEventListener('wheel', (event: WheelEvent) => {
-            const position = this.getRelativePosition(event.clientX, event.clientY);
-            const deltaZoom = event.deltaY < 0 ? 1 : event.deltaY > 0 ? -1 : 0;
-            if (deltaZoom !== 0) {
-                this.onZoom.trigger(new ZoomEventArguments(position.x, position.y, deltaZoom));
+            // Browsers expose trackpad pinch as a modifier-wheel gesture. Block
+            // that gesture over the canvas, but leave ordinary wheel scrolling
+            // and keyboard browser zoom (Cmd/Ctrl + or -) untouched.
+            if (event.ctrlKey || event.metaKey) {
+                event.preventDefault();
             }
-            event.preventDefault();
         }, activeEventOptions);
+
+        const preventGestureZoom = (event: Event) => event.preventDefault();
+        listenElement.addEventListener('gesturestart', preventGestureZoom, activeEventOptions);
+        listenElement.addEventListener('gesturechange', preventGestureZoom, activeEventOptions);
     }
 
     private getRelativePosition(clientX: number, clientY: number): Position2D {
@@ -212,6 +209,5 @@ export class UserInputManager {
         this.onTap.dispose();
         this.onPointerCancel.dispose();
         this.onDoubleClick.dispose();
-        this.onZoom.dispose();
     }
 }

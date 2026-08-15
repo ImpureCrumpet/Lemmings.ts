@@ -9,16 +9,19 @@ behaviour.
 
 - Tap or click a lemming to assign the selected skill.
 - Drag the game area with a mouse, touch contact, or pen to move the map.
-- Use the wheel over the canvas to zoom the map.
+- An ordinary mouse-wheel gesture can still scroll the page, but it does not
+  resize or move the game map.
+- Trackpad pinch and modifier-wheel zoom are suppressed over the game canvas so
+  its size remains stable.
 - The canvas captures the active pointer while dragging. Extra touch contacts
   are ignored, and cancellation always ends the drag or release-rate hold.
 - Double-clicking the classic Nuke panel arms Nuke; repeat within four seconds
   to confirm. The semantic Nuke button and keyboard shortcut use the same rule.
 
-Browser zoom remains available. The game does not use a viewport rule or
-gesture handler that disables accessibility zoom. Landscape orientation is
-recommended on narrow touch screens so the game area and controls have more
-horizontal space.
+Browser zoom remains available with Command/Ctrl `+` and `-`, or from the
+browser menu. Those keyboard combinations are reserved for the browser and are
+not routed to game actions. Landscape orientation is recommended on narrow
+touch screens so the game area and controls have more horizontal space.
 
 ## Keyboard shortcuts
 

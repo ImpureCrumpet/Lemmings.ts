@@ -24,7 +24,6 @@ export class Stage {
         this.handleOnTap();
         this.handleOnPointerCancel();
         this.handleOnDoubleClick();
-        this.handelOnZoom();
 
         this.stageCav = canvasForOutput;
 
@@ -139,7 +138,7 @@ export class Stage {
                 }
 
                 if (stageImage == this.gameImgProps) {
-                    this.updateViewPoint(stageImage, e.deltaX, e.deltaY, 0);
+                    this.updateViewPoint(stageImage, e.deltaX, e.deltaY);
                 }
             }
             else {
@@ -157,28 +156,10 @@ export class Stage {
     }
 
 
-    private handelOnZoom(): void {
-        this.controller.onZoom.on((e) => {
-            if (!e) {
-                return;
-            }
-
-            const stageImage = this.getStageImageAt(e.x, e.y);
-            if (stageImage == null) {
-                return;
-            }
-            this.updateViewPoint(stageImage, 0, 0, e.deltaZoom);
-        });
-    }
-
-
-    private updateViewPoint(stageImage: StageImageProperties, deltaX: number, deltaY: number, deltaZoom: number) {
+    private updateViewPoint(stageImage: StageImageProperties, deltaX: number, deltaY: number) {
         if (!stageImage.display) {
             return;
         }
-
-        stageImage.viewPoint.scale += deltaZoom * 0.5;
-        stageImage.viewPoint.scale = this.limitValue(0.5, stageImage.viewPoint.scale, 10);
 
         stageImage.viewPoint.x += deltaX / stageImage.viewPoint.scale;
         stageImage.viewPoint.y += deltaY / stageImage.viewPoint.scale;

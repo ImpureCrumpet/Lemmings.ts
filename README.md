@@ -1,92 +1,128 @@
 # Lemmings.ts
-A Web Lemmings Clone/Remake in TypeScript - 🎉 Yes it's 100% JavaScript 🎉
 
-<p style="text-align:center" align="center">
-<a href="http://lemmings.hmilch.net/">[play the game]</a>
-</p>
+A browser-based TypeScript remake that reads legally obtained original DOS
+Lemmings data files locally.
 
-## Feature
-* Browser Game
-* Support all variants of Lemmings Game
-* Read original Lemmings binaries on the fly
-* Support playing of original music by interpreting the adlib.dat file and using an Adlib emulator(s) (DosBox)
+The original [public demo](https://lemmings.hmilch.net/) remains online, but it
+may not include the modernization work in this private repository.
 
-## How to run
+## Features
 
-Lemmings.ts runs in a browser through a local or hosted web server. Open
-**Set up original game files** in the app and either choose an edition folder
-from your device or use the self-hosted `public/data/<edition>/` folders. The
-setup screen validates filenames and containers before play; selected files
-are not uploaded.
+- Plays six supported DOS editions: Lemmings, Oh No! More Lemmings, Xmas
+  Lemmings 1991 and 1992, and Holiday Lemmings 1993 and 1994.
+- Reads the original level, graphics, sound, and music containers in the
+  browser. Player-selected files are not uploaded.
+- Recreates AdLib music with the DOSBox-derived DBOPL emulator running in an
+  AudioWorklet.
+- Supports mouse, trackpad, touch, pen, and configurable keyboard controls.
+- Adds a readable semantic toolbar alongside the classic pixel-art panel.
+- Saves preferences and completed-level progress locally, with export and
+  reset controls.
 
-See [docu/GAME-DATA-SETUP.md](docu/GAME-DATA-SETUP.md) for supported editions,
-browser fallbacks, and the manual-copy layout.
+## Run locally
 
+### Requirements
 
+- Node.js 24 LTS or a newer supported release
+- A current browser within the production target: Chrome or Edge 111+,
+  Firefox 114+, or Safari/iOS 16.4+
+- Legally obtained data files from a supported DOS edition
 
-## How to compile
-The project uses Vue 3, TypeScript, and Vite. The framework-independent game source is in `src/game`.
+Node.js is needed only to develop or build the project. A built copy is a
+static browser application and does not require a Node server.
 
-* install [Node.js](https://nodejs.org/en/download/) 20.19 or newer
-* run `npm install` to install dependencies
-* run `npm run build` to type-check and build the game into `dist/`
+```sh
+npm ci
+npm run dev
+```
 
+Open `http://localhost:5173`, select **Set up original game files**, and choose
+an edition folder from your device. The setup screen validates filenames and
+containers before play. It can also check self-hosted files copied under
+`public/data/<edition>/`.
 
-## How to develop
-* run `npm install`
-* run `npm run dev` to start the development server
-* run `npm test` for unit tests
-* run `npm run lint` for static analysis
-* run `npm run check` to reproduce the complete required CI validation locally
+See [Original game-data setup](docu/GAME-DATA-SETUP.md) for supported folders,
+browser fallbacks, privacy details, and the manual-copy layout.
 
-The regression suite uses only project-authored synthetic data. See [docu/TESTING.md](docu/TESTING.md) for its fixture conventions and how to add parser, gameplay, terrain, or replay cases.
+## Controls
 
-Mouse, touch, pen, and keyboard controls are documented in [docu/CONTROLS.md](docu/CONTROLS.md). The game includes a semantic toolbar with readable skill names and counts in addition to the classic canvas panel.
+- Click or tap a lemming to apply the selected skill.
+- Drag the game area to move around the level.
+- Use the named toolbar or keyboard shortcuts for skills, release rate, pause,
+  speed, level navigation, and Nuke.
+- Mouse-wheel and trackpad-pinch zoom are disabled over the game canvas to keep
+  the play area stable. Browser zoom remains available with Command/Ctrl `+`
+  and `-`, or through the browser menu.
 
-Preferences and completed-level progress are saved locally in the browser and
-can be exported or reset from the game screen. See
-[docu/PLAYER-DATA.md](docu/PLAYER-DATA.md) for the saved fields, recovery rules,
-and privacy details.
+The full keyboard map, pointer behaviour, remapping, and accessibility notes
+are in [Controls and accessibility](docu/CONTROLS.md).
 
-### How to debug using *Visual Studio Code*
-* install [Visual Studio Code](https://code.visualstudio.com/)
-* open project folder (root folder of the project) in *Visual Studio Code*
-* press *Ctrl+Shift+B* to start the development server
-* use *F5* to run the debugger
+## Build and verify
 
-The original DOS game data is not distributed with this repository. Use the
-in-app setup screen with legally obtained files, or copy them into the matching
-`public/data/<edition>/` directory for local development and self-hosting.
+```sh
+npm run build
+npm run preview
+```
 
-Distribution boundaries, release checks, and the current private-repository
-policy are documented in [docu/DISTRIBUTION.md](docu/DISTRIBUTION.md). Dependency
-licenses are inventoried from the lockfile in
-[docu/DEPENDENCY-LICENSES.md](docu/DEPENDENCY-LICENSES.md), and tracked visual
-assets are recorded in [docu/ASSET-PROVENANCE.md](docu/ASSET-PROVENANCE.md).
-Automated checks, dependency updates, branch protection, and private release
-steps are documented in [docu/CI-AND-RELEASES.md](docu/CI-AND-RELEASES.md).
+The production build is written to `dist/`. It deliberately excludes original
+DOS files and locally edited toolbar artwork.
 
-See [docu/MODERNIZATION.md](docu/MODERNIZATION.md) for the 2026 modernization audit and recommended next work. The toolbar can be exported, edited as a high-resolution PNG, and loaded without repacking the DOS data; see [docu/TOOLBAR-ARTWORK.md](docu/TOOLBAR-ARTWORK.md).
+Useful development commands:
 
+```sh
+npm test          # unit and synthetic regression tests
+npm run lint      # static analysis
+npm run typecheck # TypeScript and Vue checks
+npm run check     # complete CI and release validation
+```
 
-## State
+The regression suite uses project-authored synthetic data only. See
+[Testing](docu/TESTING.md) for fixture conventions and manual browser/audio
+checks.
 
-![main](docu/examples/main.png "Main Menu")
-![demo1](docu/examples/demo_01.png "Demo 01")
-![demo2](docu/examples/demo_02.png "Demo 02")
+### Visual Studio Code
 
-# Licensing and game ownership
+Open the repository folder and run **Tasks: Run Build Task** to start the
+development server. The included launch configuration starts Chrome at
+`http://localhost:5173`; use **Run and Debug** or F5 after the server is ready.
 
-Original project code is available under the MIT terms in `LICENSE`. The
+## Project documentation
+
+- [Modernization status](docu/MODERNIZATION.md)
+- [Toolbar artwork workflow](docu/TOOLBAR-ARTWORK.md)
+- [Player data and privacy](docu/PLAYER-DATA.md)
+- [Distribution and licensing](docu/DISTRIBUTION.md)
+- [Automated checks and private releases](docu/CI-AND-RELEASES.md)
+- [Dependency licenses](docu/DEPENDENCY-LICENSES.md)
+- [Asset provenance](docu/ASSET-PROVENANCE.md)
+
+The framework-independent game engine is under `src/game`; Vue 3 provides the
+browser interface and Vite provides development and production builds.
+
+## Current interface
+
+![Current main menu](docu/examples/main.png "Current main menu")
+
+![Gameplay with the classic and semantic controls](docu/examples/demo_01.png "Gameplay and controls")
+
+![Preferences and configurable controls](docu/examples/demo_02.png "Preferences and player data")
+
+![Original game-data setup](docu/examples/setup.png "Original game-data setup")
+
+## Licensing and game ownership
+
+The original project code is available under the MIT terms in `LICENSE`. The
 DOSBox-derived DBOPL audio emulator has separate GPL-2.0-or-later terms; see
-`THIRD_PARTY_NOTICES.md`. The project is not affiliated with or endorsed by the
-owners of Lemmings. Its code license grants no rights to the Lemmings name,
-characters, artwork, audio, levels, or original data files. There is no
-"abandonware" exception: players must provide data from a copy they are legally
-entitled to use.
+`THIRD_PARTY_NOTICES.md`.
 
-## Standing on the shoulders of giants
-Special thanks goes to:
-- DMA for the original game
-- Volker Oth, ccexplore and Mindless for their work on reverse engineering the Lemmings Level and Grafic Formats
-- DosBox for there OPL emulator
+This project is not affiliated with or endorsed by the owners of Lemmings. Its
+code licenses grant no rights to the Lemmings name, characters, artwork, audio,
+levels, or original data files. Players must provide data from a copy they are
+legally entitled to use.
+
+## Acknowledgements
+
+- DMA Design for the original game
+- Volker Oth, ccexplore, and Mindless for reverse-engineering documentation of
+  the Lemmings level and graphics formats
+- The DOSBox team for the OPL emulator
