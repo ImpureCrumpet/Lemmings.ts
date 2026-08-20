@@ -377,16 +377,24 @@ export class Stage {
             return;
         }
 
+        const destW = Math.trunc(dW * display.viewPoint.scale);
+        const destH = Math.trunc(dH * display.viewPoint.scale);
+
+        // drawImage composites; transparent source pixels would otherwise leave
+        // previous sprite frames on the output canvas (VGASPEC sky, erase holes).
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(display.x, display.y, destW, destH);
+
         //- drawImage(image,sx,sy,sw,sh,dx,dy,dw,dh)
         ctx.drawImage(display.cav,
             display.viewPoint.x, display.viewPoint.y, dW, dH,
-            display.x, display.y, Math.trunc(dW * display.viewPoint.scale), Math.trunc(dH * display.viewPoint.scale));
+            display.x, display.y, destW, destH);
 
         //- apply fading
         if (this.fadeAlpha != 0) {
             ctx.globalAlpha = this.fadeAlpha;
             ctx.fillStyle = 'black';
-            ctx.fillRect(display.x, display.y, Math.trunc(dW * display.viewPoint.scale), Math.trunc(dH * display.viewPoint.scale));
+            ctx.fillRect(display.x, display.y, destW, destH);
         }
 
     }

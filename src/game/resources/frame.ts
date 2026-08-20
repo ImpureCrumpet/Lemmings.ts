@@ -154,7 +154,7 @@ export class Frame {
         this.mask[destPixelPos] = 1;
     }
 
-    /** set a pixel to back */
+    /** set a pixel to empty ground: opaque black, mask=0 */
     public clearPixel(x: number, y: number) {
 
         if ((x < 0) || (x >= this.width) ||
@@ -164,7 +164,9 @@ export class Frame {
 
         const destPixelPos = y * this.width + x;
 
-        this.data[destPixelPos] = ColorPalette.transparent;
+        // Keep alpha 255 so canvas compositing cannot retain previous sprites
+        // in VGASPEC sky, erase holes, or other empty pixels.
+        this.data[destPixelPos] = ColorPalette.black;
         this.mask[destPixelPos] = 0;
     }
 

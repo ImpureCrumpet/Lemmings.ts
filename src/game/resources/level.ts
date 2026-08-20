@@ -163,6 +163,7 @@ export class Level {
         this.groundImage[index + 0] = this.colorPalette.getR(palletIndex);
         this.groundImage[index + 1] = this.colorPalette.getG(palletIndex);
         this.groundImage[index + 2] = this.colorPalette.getB(palletIndex);
+        this.groundImage[index + 3] = 255;
     }
 
     /** checks if a point is solid ground  */
@@ -182,6 +183,7 @@ export class Level {
         this.groundImage[index + 0] = 0; // R
         this.groundImage[index + 1] = 0; // G
         this.groundImage[index + 2] = 0; // B
+        this.groundImage[index + 3] = 255;
     }
 
 
